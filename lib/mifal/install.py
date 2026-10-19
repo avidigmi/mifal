@@ -1,0 +1,338 @@
+"""Plan an install. The plan is the single source of the dry run, the journal and the writes."""
+from __future__ import annotations
+
+import itertools
+import os
+import subprocess
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+
+from . import harness
+from . import manifest as mf
+from .journal import TXN
+from .manifest import MISSING, Home, expected, sha256_file, state
+
+ENGINE_SOURCES = ("bin", "lib", "tools", "LICENSE", "VERSION")
+IGNORED = {"__pycache__", ".DS_Store"}
+OWNED = ("file", "dir", "symlink")
+CARRIED = ("backup", "saved")
+
+
+@dataclass
+class Step:
+    op: dict
+    line: str | None = None
+    src: Path | None = None
+    content: str | None = None
+
+
+@dataclass
+class Plan:
+    home: Home
+    steps: list = field(default_factory=list)
+    pre: int = 0
+    notes: list = field(default_factory=list)
+    conflicts: list = field(default_factory=list)
+    stops: list = field(default_factory=list)
+    data: dict = field(default_factory=dict)
+    previous: str | None = None
+    old: dict | None = None
+
+    @property
+    def changes_manifest(self) -> bool:
+        return bool(self.steps) or self.old is None or any(
+            self.old.get(k) != self.data.get(k) for k in ("version", "home", "source", "entries", "dependencies", "harnesses", "folders"))
+
+    def lines(self):
+        yield from self.notes
+        for step in self.steps:
+            if step.line:
+                yield step.line
+        if self.changes_manifest:
+            verb = "update" if self.previous is not None else "create"
+            yield f"{verb} {self.home.show(self.home.manifest)}"
+
+
+def source_files(h: Home, source: Path):
+    """(target realpath, source file) for every file Mifal installs."""
+    for name in ENGINE_SOURCES:
+        yield from _walk(source / name, h.engine / name)
+    yield h.engine / "AGENTS.md", source / "guide" / "AGENTS.md"
+    for skill in sorted(p for p in (source / "skills").iterdir() if p.is_dir() and p.name not in IGNORED):
+        yield from _walk(skill, h.pool / skill.name)
+
+
+def _walk(src: Path, target: Path):
+    if src.is_file():
+        yield target, src
+        return
+    for root, dirs, files in os.walk(src):
+        dirs[:] = sorted(d for d in dirs if d not in IGNORED)
+        for name in sorted(files):
+            if name in IGNORED:
+                continue
+            path = Path(root, name)
+            yield target / path.relative_to(src), path
+
+
+def _inside(path: Path, root: Path) -> bool:
+    return path == root or root in path.parents
+
+
+def _git_out(source: Path, *args):
+    result = subprocess.run(["git", "-C", str(source), *args], capture_output=True, text=True,
+                            stdin=subprocess.DEVNULL)
+    return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else None
+
+
+def source_info(source: Path) -> dict:
+    """The clone an install comes from: its path, revision, upstream branch and that remote's URL."""
+    if not (source / ".git").exists():
+        return {"path": str(source), "revision": None}
+    upstream = _git_out(source, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+    url = _git_out(source, "remote", "get-url", upstream.split("/", 1)[0]) if upstream else None
+    return {"path": str(source), "revision": _git_out(source, "rev-parse", "HEAD"), "upstream": upstream, "url": url}
+
+
+def _depth(path: Path):
+    return (len(path.parts), str(path))
+
+
+def folders(h: Home, found_roots: dict, names) -> dict:
+    """Each folder Mifal writes into: its path as the user names it, and its realpath now."""
+    named = {"engine": h.home / mf.ENGINE, "pool": h.home / mf.POOL, "bin": h.home / mf.BIN}
+    named.update({"harness:" + n: found_roots[n] for n in names})
+    return {k: {"path": str(p), "real": os.path.realpath(p)} for k, p in named.items()}
+
+
+def moved_folders(h: Home, recorded: dict) -> list:
+    """A line for each recorded folder whose realpath changed since install."""
+    lines = []
+    for key, f in sorted(recorded.items()):
+        now = os.path.realpath(f["path"])
+        if now != f["real"]:
+            lines.append(f"{h.show(f['path'])} now resolves to {h.show(now)}, not {h.show(f['real'])} as installed")
+    return lines
+
+
+def make_plan(h: Home, source: Path, version: str, overwrite_edits: bool = False, selected=None, env=None,
+              allow_outside: bool = False, source_record=None) -> Plan:
+    loaded = mf.load(h)
+    old, previous = loaded if loaded else (None, None)
+    if old is None and os.path.lexists(h.engine):
+        raise SystemExit(f"mifal: {h.show(h.engine)} exists but holds no Manifest. Move it aside and run the installer again.")
+    if old and old.get("state") != "complete":
+        raise SystemExit("mifal: an interrupted install must be rolled back first; run the installer again.")
+    owned = {Path(e["path"]): e for e in old["entries"] if e["kind"] in OWNED} if old else {}
+    old_blocks = {Path(e["path"]): e for e in old["entries"] if e["kind"] == "block"} if old else {}
+    entries = [e for e in old["entries"] if e["kind"] in CARRIED] if old else []
+    plan = Plan(h, previous=previous, old=old)
+    show = h.show
+    env = os.environ if env is None else env
+
+    found_roots = harness.roots(h.home, env)
+    was_wired = [n for n, r in (old or {}).get("harnesses", {}).items() if r["status"] == "wired"]
+    names = [n for n in harness.NAMES if n in set(selected or harness.detect(h.home, env, found_roots)) | set(was_wired)]
+    now_folders = folders(h, found_roots, names)
+    plan.stops += moved_folders(h, {k: f for k, f in (old or {}).get("folders", {}).items() if k in now_folders})
+    for key, f in now_folders.items():
+        if not allow_outside and not _inside(Path(f["real"]), h.real):
+            plan.stops.append(f"{show(f['path'])} resolves to {f['real']}, outside your home folder. "
+                              "Run with --allow-root-outside-home to write there.")
+    wirings = [harness.plan(n, h.home, env, Path(now_folders["harness:" + n]["real"]), show) for n in names]
+    guide_text = (source / "guide" / "AGENTS.md").read_text(encoding="utf-8")
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stash_names = itertools.count()
+    files = dict(source_files(h, source))
+    link_target = str(h.engine / "bin" / "mifal")
+    skills = sorted({t.relative_to(h.pool).parts[0] for t in files if _inside(t, h.pool)})
+    skill_links = {w.root / "skills" / name: str(h.pool / name)
+                   for w in wirings if w.mode == "import" and (not w.skip or w.rules in old_blocks) for name in skills}
+    units = [h.pool / name for name in skills] + [h.link] + sorted(skill_links)
+
+    for folder, real in h.linked():
+        plan.notes.append(f"note {show(folder)} is a link to {show(real)}; Mifal writes there")
+
+    moves, gone = [], []
+
+    def move(path, dest, line, why):
+        moves.append(Step({"op": "move", "from": str(path), "to": str(dest), "why": why}, line))
+        gone.append(path)
+
+    def vanishes(path):
+        return any(_inside(path, g) for g in gone)
+
+    def stash(path, line=None):
+        move(path, h.engine / TXN / str(next(stash_names)), line, "stash")
+
+    def conflict(path, reason):
+        if overwrite_edits:
+            dest = h.under(h.saved / stamp, path)
+            move(path, dest, f"save {show(path)} -> {show(dest)}", "save")
+            entries.append({"kind": "saved", "path": str(dest), "original": str(path)})
+        else:
+            plan.conflicts.append(f"{show(path)}: {reason}")
+
+    def claim(path, want):
+        """The verb for making path hold want, after moving aside what is there, or None when it already does."""
+        if vanishes(path):
+            return "create"
+        now = state(path)
+        if now == want:
+            return None
+        if now == MISSING:
+            return "create"
+        entry = owned.get(path)
+        if entry and now == expected(entry):
+            stash(path)
+        else:
+            conflict(path, "changed since Mifal wrote it" if entry else "exists and was not installed by Mifal")
+        return "update"
+
+    for unit in units:
+        if os.path.lexists(unit) and not any(_inside(p, unit) for p in owned):
+            dest = h.under(h.engine / "backup" / stamp, unit)
+            move(unit, dest, f"backup {show(unit)} -> {show(dest)}", "backup")
+            entries.append({"kind": "backup", "path": str(unit), "backup": str(dest)})
+
+    writes, links = [], []
+    for target, src in files.items():
+        digest = sha256_file(src)
+        verb = claim(target, ("file", digest))
+        if verb:
+            writes.append(Step({"op": "write", "path": str(target), "sha256": digest}, f"{verb} {show(target)}", src))
+        entries.append({"kind": "file", "path": str(target), "sha256": digest})
+    for path, target in [(h.link, link_target)] + sorted(skill_links.items()):
+        if claim(path, ("link", target)):
+            links.append(Step({"op": "link", "path": str(path), "target": target}, f"link {show(path)} -> {target}"))
+        entries.append({"kind": "symlink", "path": str(path), "target": target})
+
+    blocks, records = [], {}
+    for w in wirings:
+        records[w.name] = {"root": str(w.root), "rules": str(w.rules), "status": "skipped" if w.skip else "wired"}
+        rec = old_blocks.get(w.rules)
+        if w.skip:
+            plan.notes.append(w.skip)
+            if rec:
+                entries.append(rec)
+                records[w.name]["status"] = "wired"
+            continue
+        new_block = harness.block(w.name, version, guide_text)
+        if os.path.lexists(w.rules) and state(w.rules)[0] != "file":
+            plan.conflicts.append(f"{show(w.rules)}: is not a file")
+            continue
+        text = mf.read_rules(w.rules) if os.path.lexists(w.rules) else None
+        found = harness.BLOCK.findall(text or "")
+        sep, created, copy = (rec["sep"], rec["created"], None) if rec else (None, text is None, None)
+        if rec and text is not None and (len(found) != 1 or harness.digest(found[0]) != rec["sha256"]):
+            if not overwrite_edits or len(found) > 1:
+                plan.conflicts.append(f"{show(w.rules)}: its Mifal block changed since install")
+                entries.append(rec)
+                continue
+            dest = h.under(h.saved / stamp, w.rules)
+            moves.append(Step({"op": "copy", "from": str(w.rules), "to": str(dest), "why": "save"},
+                              f"save {show(w.rules)} -> {show(dest)}"))
+            entries.append({"kind": "saved", "path": str(dest), "original": str(w.rules)})
+        elif not rec and found:
+            plan.conflicts.append(f"{show(w.rules)}: holds a Mifal block this install did not write")
+            continue
+        if found and found[0] == new_block and rec:
+            entries.append(rec)
+            continue
+        if found and (rec or overwrite_edits):
+            new_text, verb = text.replace(found[0], new_block, 1), "update"
+        else:
+            if sep is None or text is None:
+                sep = "" if not text else ("\n" if text.endswith("\n") else "\n\n")
+            created = True if text is None else created
+            new_text, verb = (text or "") + sep + new_block, "block"
+        if w.name == "codex" and len(new_text.encode("utf-8")) > harness.CODEX_CAP:
+            plan.notes.append(f"warn codex: {show(w.rules)} would be {len(new_text.encode('utf-8'))} bytes with the "
+                              "Guide, past Codex's 32 KiB default cap, so Codex may cut it short.")
+        if text is not None:
+            copy = str(h.engine / TXN / str(next(stash_names)))
+        blocks.append(Step({"op": "block", "path": str(w.rules), "sha256": harness.digest(new_text),
+                            "before": harness.digest(text) if text is not None else None, "copy": copy},
+                           f"{verb} {show(w.rules)}", content=new_text))
+        entries.append({"kind": "block", "path": str(w.rules), "sha256": harness.digest(new_block),
+                        "sep": sep, "created": created})
+
+    recorded, transient = set(), set()
+
+    def need(path, root, into):
+        """Every folder from path up to root, and root's missing or Mifal-made ancestors."""
+        while _inside(path, root):
+            into.add(path)
+            path = path.parent
+        while path != path.parent and (not os.path.lexists(path) or path in owned):
+            into.add(path)
+            path = path.parent
+
+    for target in files:
+        need(target.parent, h.engine if _inside(target, h.engine) else h.pool / target.relative_to(h.pool).parts[0],
+             recorded)
+    need(h.link.parent, h.link, recorded)
+    for path in skill_links:
+        need(path.parent, path.parent.parent, recorded)
+    for step in blocks:
+        rules = Path(step.op["path"])
+        need(rules.parent, rules.parent, recorded)
+    for step in list(moves):
+        dest = Path(step.op["to"])
+        if step.op["why"] == "backup":
+            need(dest.parent, h.engine, recorded)
+        elif step.op["why"] == "save":
+            need(dest.parent, h.saved, transient)
+    if writes or blocks:
+        need(h.engine / TXN, h.engine / TXN, transient)
+
+    removed, rmdirs = set(), []
+    for path, entry in sorted(owned.items(), key=lambda kv: _depth(kv[0]), reverse=True):
+        if path in files or path == h.link or path in skill_links or path in recorded:
+            continue
+        now = state(path)
+        if now == MISSING:
+            continue
+        if entry["kind"] == "dir":
+            if now == ("dir",) and all(c in removed for c in path.iterdir()):
+                rmdirs.append(Step({"op": "rmdir", "path": str(path)}, f"remove {show(path)}"))
+                removed.add(path)
+            else:
+                entries.append(entry)
+        elif now == expected(entry):
+            stash(path, f"remove {show(path)}")
+            removed.add(path)
+        else:
+            plan.notes.append(f"keep {show(path)}: changed since install, and no longer part of Mifal")
+
+    if any(s.op["why"] == "stash" for s in moves):
+        need(h.engine / TXN, h.engine / TXN, transient)
+
+    outer, inner = [], []
+    for path in sorted(recorded | transient, key=_depth):
+        if vanishes(path) or not os.path.lexists(path):
+            (inner if vanishes(path) else outer).append(Step({"op": "mkdir", "path": str(path)},
+                                                              None if path in transient and path.name == TXN
+                                                              else f"create {show(path)}"))
+        elif state(path) != ("dir",):
+            conflict(path, "is not a folder")
+            inner.append(Step({"op": "mkdir", "path": str(path)}, f"create {show(path)}"))
+        if path in recorded and (vanishes(path) or not os.path.lexists(path) or path in owned):
+            entries.append({"kind": "dir", "path": str(path)})
+
+    first = [s for s in outer if _inside(h.engine, Path(s.op["path"]))]
+    plan.steps = first + [s for s in outer if s not in first] + moves + inner + writes + links + blocks + rmdirs
+    plan.pre = len(first)
+    plan.data = {
+        "format": mf.FORMAT,
+        "state": "complete",
+        "version": version,
+        "home": str(h.real),
+        "source": source_record or source_info(source),
+        "entries": sorted(entries, key=lambda e: (e["kind"], e["path"])),
+        "dependencies": old.get("dependencies", {}) if old else {},
+        "harnesses": records,
+        "folders": now_folders,
+    }
+    return plan

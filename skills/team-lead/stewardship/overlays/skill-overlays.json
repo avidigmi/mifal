@@ -1,0 +1,31 @@
+{
+  "comment": "Lead-curated overlay on the generated skill inventory. The generator reconciles everything else from the installed Pool; only fields here (owner, maturity, notes) override the derived defaults. Origins, scopes, policy and catalog facts always come from the stewardship config files.",
+  "skills": {
+    "team-lead": {
+      "maturity": "active-development",
+      "notes": "Lead procedure, stewardship registry and recruitment; the Herdr adapter ships in the engine's tools/."
+    },
+    "engineering-workflow": {
+      "maturity": "core",
+      "notes": "The entry point for Matt-methodology work in every harness."
+    },
+    "ask-matt": {
+      "maturity": "core",
+      "notes": "Route graph owner; engineering-workflow reads it."
+    },
+    "tdd": {
+      "maturity": "core"
+    },
+    "diagnosing-bugs": {
+      "maturity": "core",
+      "notes": "Catalog decision Keep core; first reflex for bug work per engineering-workflow."
+    },
+    "code-review": {
+      "maturity": "core"
+    },
+    "herdr": {
+      "maturity": "core-transport",
+      "notes": "Spec 0001 transport: the lead lives in a herdr pane and drives the socket adapter."
+    }
+  }
+}

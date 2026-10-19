@@ -1,0 +1,533 @@
+{
+  "format": 1,
+  "components": [
+    {
+      "name": "mifal",
+      "repo": "romiluz13/mifal",
+      "revision": "this repository",
+      "licence": "MIT",
+      "paths": [
+        "skills/engineering-workflow/*",
+        "skills/team-lead/*",
+        "tools/*",
+        "skills/frontend-design/references/interface/interface.md",
+        "skills/frontend-design/references/interface/engines.md",
+        "skills/frontend-design/references/interface/SOURCES.md"
+      ],
+      "notes": "Mifal's own: the workflow, the team lead, the Herdr adapter, the review snapshot tool and the local interface branch of frontend-design.",
+      "licence_file": "LICENSE",
+      "copyright": "Copyright (c) 2026 Rom Iluz and the Mifal contributors"
+    },
+    {
+      "name": "mattpocock-skills",
+      "repo": "mattpocock/skills",
+      "licence": "MIT",
+      "revision": "per skill: the upstream commit whose folder tree matched the skill lock",
+      "skills": {
+        "ask-matt": {
+          "upstream": "skills/engineering/ask-matt",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "d6a0d9bf3cdc78cbfcbd6466ac5fd3deffb52877",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "code-review": {
+          "upstream": "skills/engineering/code-review",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "fee7bb5fdddc069d58cbea09b2c36b5a859eac05",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "codebase-design": {
+          "upstream": "skills/engineering/codebase-design",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "07ba1cd60efc12d0d3a083005c1d9651cf15e39a",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "diagnosing-bugs": {
+          "upstream": "skills/engineering/diagnosing-bugs",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "5fdd6cc53385395441910b026c72d71768e993d4",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "domain-modeling": {
+          "upstream": "skills/engineering/domain-modeling",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "ea30ee454ba264543dbe40737973b1a5afb9f0e6",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "grill-me": {
+          "upstream": "skills/productivity/grill-me",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "3df14e2d3a89459bf300614be9247e3ce74798f8",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "grill-with-docs": {
+          "upstream": "skills/engineering/grill-with-docs",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "eedaf2562c83155115e9c649fa3ecaac2e10e81d",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "grilling": {
+          "upstream": "skills/productivity/grilling",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "28aceb4c9567b985cb47f7db88cf23c9f33af8b8",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "handoff": {
+          "upstream": "skills/productivity/handoff",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "ce24892bd2d4b9e7fd5ac9b95c03175e18bef388",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "implement": {
+          "upstream": "skills/engineering/implement",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "4804b466ab26c9b9d8d42917547db133d1f20a9f",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "implement-spec": {
+          "upstream": "skills/engineering/implement-spec",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "0cfefc751d0cb64f0c948ffcb17e13b94e778f08",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "improve-codebase-architecture": {
+          "upstream": "skills/engineering/improve-codebase-architecture",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "39bd9cc130f7dfcc4e3ea0b3613f6ebed0d0ad2b",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "pr": {
+          "upstream": "skills/engineering/pr",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "00b896d811adffad747c7ca30078d909d60c7f93"
+        },
+        "prototype": {
+          "upstream": "skills/engineering/prototype",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "e41d92e171f074a2b6887d8f6faca4a15c83d1ca",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "research": {
+          "upstream": "skills/engineering/research",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "0a6796c5667e95ed2301ba7381c123b4acb2ae1a",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "retro": {
+          "upstream": "skills/engineering/retro",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "335c1862a43da9d629abafdb79ca0c0de118be08",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "setup-matt-pocock-skills": {
+          "upstream": "skills/engineering/setup-matt-pocock-skills",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "aafaabf96fa3945d8a4069317a7a6d36b7169670",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "setup-pre-commit": {
+          "upstream": "skills/misc/setup-pre-commit",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "5b63f9f665bacc9be04cae51982e9ef1469d6699",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "tdd": {
+          "upstream": "skills/engineering/tdd",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "667dbdd00c09d0e2189e082986e6a4d61a67c2a6",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "teach": {
+          "upstream": "skills/productivity/teach",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "3fd617b610e59acbb99644de1ef37e394ff53cd1",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "to-questionnaire": {
+          "upstream": "skills/productivity/to-questionnaire",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "46dfbeeba12a9e52eef446676f42e7551023d9a9",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "to-spec": {
+          "upstream": "skills/engineering/to-spec",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "136b9651747cfccbfbb7c50a6b0dfb757e7547d2",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "to-tickets": {
+          "upstream": "skills/engineering/to-tickets",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "2dee20ad722a31c04ededf9f2d83842473573045",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "triage": {
+          "upstream": "skills/engineering/triage",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "4cb951d62ecccaed601cdc5f9a1b7b3d8a799635",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "wait-what": {
+          "upstream": "skills/productivity/wait-what",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "c8b050e6b8c711be1a9008ceacb2126914f0763e",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "wayfinder": {
+          "upstream": "skills/engineering/wayfinder",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "32b0ce970b1394ede47116e1d3e07f9ccc87591f",
+          "modified": {
+            "changed": [
+              "SKILL.md",
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "wizard": {
+          "upstream": "skills/engineering/wizard",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "e396d3ba97c723a78ffd350fb14a3c409137b306",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "writing-for-agents": {
+          "upstream": "skills/productivity/writing-for-agents",
+          "commit": "49dd158d1076134a641b33efb035946536778336",
+          "tree": "ad2925850efb8973a72d2e666f7a975f9a2d4a9b",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        }
+      },
+      "paths": [
+        "skills/ask-matt/*",
+        "skills/code-review/*",
+        "skills/codebase-design/*",
+        "skills/diagnosing-bugs/*",
+        "skills/domain-modeling/*",
+        "skills/grill-me/*",
+        "skills/grill-with-docs/*",
+        "skills/grilling/*",
+        "skills/handoff/*",
+        "skills/implement/*",
+        "skills/implement-spec/*",
+        "skills/improve-codebase-architecture/*",
+        "skills/pr/*",
+        "skills/prototype/*",
+        "skills/research/*",
+        "skills/retro/*",
+        "skills/setup-matt-pocock-skills/*",
+        "skills/setup-pre-commit/*",
+        "skills/tdd/*",
+        "skills/teach/*",
+        "skills/to-questionnaire/*",
+        "skills/to-spec/*",
+        "skills/to-tickets/*",
+        "skills/triage/*",
+        "skills/wait-what/*",
+        "skills/wayfinder/*",
+        "skills/wizard/*",
+        "skills/writing-for-agents/*"
+      ],
+      "licence_file": "third_party/licenses/mattpocock-skills.txt",
+      "copyright": "Copyright (c) 2026 Matt Pocock"
+    },
+    {
+      "name": "ddd",
+      "repo": "romiluz13/ddd",
+      "licence": "MIT",
+      "revision": "per skill: the upstream commit whose folder tree matched the skill lock",
+      "skills": {
+        "ddd": {
+          "upstream": "skills/ddd",
+          "commit": "d65c26b912e6182385a47af061aded58d9748273",
+          "tree": "54313c4ae9443835ee28b7451ab51d55d8a7f22c",
+          "modified": {
+            "added": [
+              "agents/openai.yaml"
+            ]
+          }
+        },
+        "ddd-ground": {
+          "upstream": "skills/ddd-ground",
+          "commit": "d65c26b912e6182385a47af061aded58d9748273",
+          "tree": "13be2e25aea00b2cda2d43afc5728ad49991a510"
+        },
+        "ddd-scope": {
+          "upstream": "skills/ddd-scope",
+          "commit": "d65c26b912e6182385a47af061aded58d9748273",
+          "tree": "644a544eec57848cdf67911e5b2192073d9536ff"
+        },
+        "ddd-verify": {
+          "upstream": "skills/ddd-verify",
+          "commit": "d65c26b912e6182385a47af061aded58d9748273",
+          "tree": "a39f014aecad91470332ddf7a1588dfb157eef15"
+        }
+      },
+      "paths": [
+        "skills/ddd/*",
+        "skills/ddd-ground/*",
+        "skills/ddd-scope/*",
+        "skills/ddd-verify/*"
+      ],
+      "licence_file": "third_party/licenses/ddd.txt",
+      "copyright": "Copyright (c) 2026 DDD Methodology"
+    },
+    {
+      "name": "superpowers",
+      "repo": "obra/superpowers",
+      "licence": "MIT",
+      "revision": "per skill: the upstream commit whose folder tree matched the skill lock",
+      "paths": [
+        "skills/receiving-code-review/*",
+        "skills/verification-before-completion/*"
+      ],
+      "licence_file": "third_party/licenses/superpowers.txt",
+      "copyright": "Copyright (c) 2025 Jesse Vincent",
+      "skills": {
+        "receiving-code-review": {
+          "upstream": "skills/receiving-code-review",
+          "commit": "3fb75974186ea7fada621d8ab77b3b02169baf57",
+          "tree": "b5e154fc3ec7a6a0b1e710eebacc2168620cc428",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        },
+        "verification-before-completion": {
+          "upstream": "skills/verification-before-completion",
+          "commit": "3be5aad3dd2400ef23b15680969f4bcd3b6d7b8b",
+          "tree": "a4cb0b69aaefeab540947a7f1642bdaad810e37a",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "agent-browser",
+      "repo": "vercel-labs/agent-browser",
+      "licence": "Apache-2.0",
+      "revision": "per skill: the upstream commit whose folder tree matched the skill lock",
+      "skills": {
+        "agent-browser": {
+          "upstream": "skills/agent-browser",
+          "commit": "dac13bb87468fe9d74a040d862720f6cc17a9565",
+          "tree": "82def67855a0d2aad7794207951820fa5422fdb0",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        }
+      },
+      "paths": [
+        "skills/agent-browser/*"
+      ],
+      "adaptations": "the self-improvement section",
+      "licence_file": "third_party/licenses/agent-browser.txt",
+      "copyright": "Copyright 2025 Vercel Inc."
+    },
+    {
+      "name": "anthropic-skills",
+      "repo": "anthropics/skills",
+      "licence": "Apache-2.0",
+      "revision": "per skill: the upstream commit whose folder tree matched the skill lock",
+      "skills": {
+        "frontend-design": {
+          "upstream": "skills/frontend-design",
+          "commit": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+          "tree": "d79e2a5bb4df4a386c2adcdd9ab8709bba28c3f6",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ],
+            "added": [
+              "references/interface/ (Mifal's appendix: see the mifal, impeccable and lottiefiles-motion-design components)"
+            ]
+          }
+        }
+      },
+      "paths": [
+        "skills/frontend-design/SKILL.md",
+        "skills/frontend-design/LICENSE.txt"
+      ],
+      "adaptations": "a local appendix after the provider-preserved marker",
+      "licence_file": "third_party/licenses/anthropic-skills.txt",
+      "copyright": "not stated upstream"
+    },
+    {
+      "name": "impeccable",
+      "repo": "pbakaus/impeccable",
+      "licence": "Apache-2.0",
+      "revision": "bbcb29d9dee6c94915d760bcfc36818ad5be66ad",
+      "version": "4.5.0",
+      "paths": [
+        "skills/frontend-design/references/interface/design.md",
+        "skills/frontend-design/references/interface/motion.md",
+        "skills/frontend-design/references/interface/licenses/IMPECCABLE-LICENSE"
+      ],
+      "adaptations": "selected guidance adapted into local prose (SOURCES.md)",
+      "licence_file": "skills/frontend-design/references/interface/licenses/IMPECCABLE-LICENSE",
+      "copyright": "Paul Bakaus and contributors, as SOURCES.md records; the licence text names no owner",
+      "notice_file": "third_party/licenses/impeccable-NOTICE.md"
+    },
+    {
+      "name": "lottiefiles-motion-design",
+      "repo": "LottieFiles/motion-design-skill",
+      "licence": "MIT",
+      "revision": "f9a8a041b85185ee4881b3471d3415e939aac772",
+      "version": "1.0.0",
+      "paths": [
+        "skills/frontend-design/references/interface/motion.md",
+        "skills/frontend-design/references/interface/licenses/LOTTIEFILES-LICENSE"
+      ],
+      "adaptations": "selected guidance adapted into local prose (SOURCES.md)",
+      "licence_file": "skills/frontend-design/references/interface/licenses/LOTTIEFILES-LICENSE",
+      "copyright": "Copyright (c) 2025 LottieFiles"
+    },
+    {
+      "name": "herdr",
+      "repo": "herdrdev/herdr",
+      "licence": "Apache-2.0",
+      "revision": "per skill: the upstream commit whose folder tree matched the skill lock",
+      "skills": {
+        "herdr": {
+          "upstream": "skills/herdr",
+          "commit": "9c38bbc64e3b7a23176afb2451a067a53fb8d2fd",
+          "tree": "67042ed7910d4177a9000e0679e78b0346060927",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
+        }
+      },
+      "paths": [
+        "skills/herdr/*"
+      ],
+      "licence_file": "third_party/licenses/herdr.txt",
+      "copyright": "not stated upstream"
+    }
+  ]
+}

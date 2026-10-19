@@ -1,0 +1,77 @@
+import re
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+
+from support import REPO, Sandbox, changed, snapshot
+from test_content import denied
+from test_lifecycle import planned_paths
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "helpers"))
+import readme_writes  # noqa: E402
+
+README = REPO / "README.md"
+HARNESSES = ("claude", "codex", "droid", "pi", "opencode")
+SH = re.compile(r"(?ms)^```sh\n(.*?)^```")
+URL = re.compile(r"git clone (\S+)")
+
+
+def text():
+    return README.read_text(encoding="utf-8")
+
+
+class Readme(Sandbox):
+    def generated_table(self):
+        self.harness_fakes(*HARNESSES)
+        before = snapshot(self.home)
+        preview = self.install("--dry-run")
+        self.install()
+        planned = planned_paths(preview.stdout)
+        self.assertEqual(planned, changed(before, snapshot(self.home)))
+        return readme_writes.table(self.home, planned)
+
+    def test_the_writes_table_matches_a_dry_run_with_all_five_harnesses(self):
+        self.assertEqual(readme_writes.section(text()), self.generated_table(),
+                         "regenerate it with: python3 tests/helpers/readme_writes.py")
+
+    def test_every_command_runs_as_written_in_a_disposable_home(self):
+        blocks = SH.findall(text())
+        self.assertTrue(blocks)
+        url = URL.search(text()).group(1)
+        origin = self.root / "origin.git"
+        env = dict(self.env(), GIT_CONFIG_NOSYSTEM="1")
+        git = ["git", "-C", str(self.clone), "-c", "user.name=t", "-c", "user.email=t@example.com"]
+        for args in (["git", "init", "-q", "-b", "main", str(self.clone)], git + ["add", "-A"],
+                     git + ["commit", "-q", "-m", "release"],
+                     ["git", "clone", "-q", "--bare", str(self.clone), str(origin)]):
+            subprocess.run(args, check=True, env=env, capture_output=True)
+        (self.home / ".gitconfig").write_text(f'[url "{origin}"]\n\tinsteadOf = {url}\n')
+        self.fake("brew", "")
+        script = "set -eu\n" + "\n".join(blocks)
+        result = self.run_cmd("/bin/bash", "-c", script, check=False,
+                              PATH=f"{self.home}/.local/bin:{self.fakebin}:/usr/bin:/bin")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("doctor: ", result.stdout)
+        self.assertNotRegex(result.stdout, r"(?m)^FAIL")
+
+    def test_nothing_personal_in_the_readme(self):
+        self.assertEqual([line for line in text().splitlines() if denied("README.md", line)], [])
+
+    def test_the_readme_says_what_is_checked_by_a_program_and_what_relies_on_the_agent(self):
+        self.assertRegex(text(), r"(?m)^## What is checked, and what relies on the agent")
+
+    def test_the_support_matrix_is_provisional_and_every_cell_untested(self):
+        matrix = re.search(r"(?ms)^## Support\n(.*?)^## ", text()).group(1)
+        rows = [line for line in matrix.splitlines() if line.startswith("| macOS")]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].count("untested"), len(HARNESSES))
+        self.assertIn("provisional", matrix)
+
+    def test_the_readme_says_herdr_stays_and_how_to_remove_it(self):
+        self.assertRegex(text(), r"Herdr stays installed")
+        self.assertIn("brew uninstall herdr", text())
+
+
+if __name__ == "__main__":
+    unittest.main()

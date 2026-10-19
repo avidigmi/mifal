@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/absolute/path/to/.claude/hooks/team-stop.sh /absolute/path/to/project/.team",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

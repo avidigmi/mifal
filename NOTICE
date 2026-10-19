@@ -1,0 +1,33 @@
+Mifal
+Copyright (c) 2026 Rom Iluz and the Mifal contributors. Licensed under the MIT
+License (LICENSE).
+
+Mifal vendors skills and guidance from the projects below. Each keeps its own
+licence; the full texts are in third_party/licenses/ and in
+skills/frontend-design/references/interface/licenses/. The exact upstream
+commit, folder tree and the files Mifal changed for every vendored skill are
+recorded in third_party/provenance.json.
+
+- Matt Pocock's skills (github.com/mattpocock/skills): 28 skills. MIT,
+  Copyright (c) 2026 Matt Pocock.
+- DDD (github.com/romiluz13/ddd): ddd, ddd-scope, ddd-ground, ddd-verify. MIT,
+  Copyright (c) 2026 DDD Methodology.
+- Superpowers (github.com/obra/superpowers): receiving-code-review,
+  verification-before-completion. MIT, Copyright (c) 2025 Jesse Vincent.
+- agent-browser (github.com/vercel-labs/agent-browser): the agent-browser
+  skill. Apache-2.0, Copyright 2025 Vercel Inc.
+- Anthropic skills (github.com/anthropics/skills): the base of frontend-design.
+  Apache-2.0; no copyright owner is stated upstream.
+- Herdr (github.com/herdrdev/herdr): the herdr skill. Apache-2.0; no copyright
+  owner is stated upstream. Herdr itself is installed separately and is not
+  part of this repository.
+- Impeccable 4.5.0 (github.com/pbakaus/impeccable): guidance adapted into
+  frontend-design's interface appendix. Apache-2.0, copyright Paul Bakaus and
+  contributors. Its upstream NOTICE.md is kept in third_party/licenses/.
+- LottieFiles motion-design 1.0.0 (github.com/LottieFiles/motion-design-skill):
+  guidance adapted into the same appendix. MIT, Copyright (c) 2025 LottieFiles.
+
+Changes Mifal made to vendored skills: a self-improvement section appended to
+each SKILL.md; invocation blockers removed so every skill is model-invoked;
+agents/openai.yaml interface metadata added; frontend-design extended with a
+local interface appendix. Apache-2.0 files Mifal changed say so at their end.

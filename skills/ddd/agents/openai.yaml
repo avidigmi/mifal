@@ -1,0 +1,5 @@
+interface:
+  display_name: "DDD Validation"
+  short_description: "Validate risky technology decisions against official sources"
+policy:
+  allow_implicit_invocation: true

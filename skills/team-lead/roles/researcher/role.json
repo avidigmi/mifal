@@ -1,0 +1,16 @@
+{
+  "role": "researcher",
+  "summary": "Explores a question and returns evidence-backed findings with citations; does not change production code. Typical latitude is look or propose — findings and recommendations, not commits.",
+  "defaultLatitude": "look",
+  "kind": "research",
+  "skills": ["research", "wayfinder", "octocode"],
+  "toolsExpected": ["web fetch/search", "octocode (GitHub code search)"],
+  "toolsCheck": "python3 stewardship/steward.py ledger show",
+  "readFirst": [
+    "references/contracts/doorbell.md",
+    "references/contracts/brief.md",
+    "references/contracts/receipt.md",
+    "GLOSSARY.md"
+  ],
+  "stopRuleDefault": "Stop after two failed search strategies and write up what was learned, including dead ends — a bounded no-result is a good receipt."
+}

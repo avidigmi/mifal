@@ -1,0 +1,41 @@
+{
+  "note": "Written BEFORE the 5.2 router change (see tasks/5/fixtures-5.2-written-at.txt). The five opus-* inputs are reconstructed from tasks/5/opus-review.md and the paths in tasks/5/opus/router-probes.txt, because the probe inputs were not saved. Every case expects the route shown; no case may route lower than its expectation.",
+  "cases": [
+    {"name": "opus: a deleted admin guard, no added lines", "changes": [{"path": "src/views.py", "added": [], "removed": ["if not request.user.is_admin: return forbidden()"]}], "expect": "escalate"},
+    {"name": "opus: jwt signature verification switched off", "changes": [{"path": "src/middleware/jwt.py", "added": ["payload = jwt.decode(token, key, options={\"verify_signature\": False})"]}], "expect": "escalate"},
+    {"name": "opus: csrf_exempt decorator added", "changes": [{"path": "src/views.py", "added": ["@csrf_exempt"]}], "expect": "escalate"},
+    {"name": "opus: login returns True", "changes": [{"path": "src/login.py", "added": ["return True"]}], "expect": "escalate"},
+    {"name": "opus: cors origins star", "changes": [{"path": "src/app.py", "added": ["CORS_ALLOWED_ORIGINS = [\"*\"]"]}], "expect": "escalate"},
+
+    {"name": "identifier: snake_case guard added", "changes": [{"path": "src/orders/process.py", "added": ["require_permission(user, \"purchase\")"]}], "expect": "escalate"},
+    {"name": "identifier: camelCase guard added", "changes": [{"path": "src/orders/process.js", "added": ["if (checkAuth(user)) process(order);"]}], "expect": "escalate"},
+    {"name": "identifier: kebab-case guard added", "changes": [{"path": "src/orders/process.html", "added": ["<div data-require-auth=\"true\">"]}], "expect": "escalate"},
+    {"name": "identifier: PascalCase acronym guard added", "changes": [{"path": "src/orders/process.ts", "added": ["const ok = verifyJWTSignature(token);"]}], "expect": "escalate"},
+
+    {"name": "removed: the only auth line deleted", "changes": [{"path": "src/orders/process.py", "added": [], "removed": ["if user.permission: process(order)"]}], "expect": "escalate"},
+    {"name": "removed: the auth line replaced by pass", "changes": [{"path": "src/orders/process.py", "added": ["pass"], "removed": ["if user.permission: process(order)"]}], "expect": "escalate"},
+    {"name": "removed: a deleted snake_case guard", "changes": [{"path": "src/orders/process.py", "added": [], "removed": ["    require_permission(user, \"purchase\")"]}], "expect": "escalate"},
+    {"name": "removed: only plain text removed from a doc stays bounded", "changes": [{"path": "docs/usage.md", "added": ["Fix spelling."], "removed": ["Fix speling."]}], "expect": "bounded-review"},
+    {"name": "removed: plain source lines on both sides stay bounded", "changes": [{"path": "src/format/date.py", "added": ["return str(value)"], "removed": ["return value.isoformat()"]}], "expect": "bounded-review"},
+
+    {"name": "vocabulary: login in content", "changes": [{"path": "src/orders/process.py", "added": ["login_user(request)"]}], "expect": "escalate"},
+    {"name": "vocabulary: logout in content", "changes": [{"path": "src/orders/process.py", "added": ["def logout(request): pass"]}], "expect": "escalate"},
+    {"name": "vocabulary: session in content", "changes": [{"path": "src/orders/process.py", "added": ["request.session.flush()"]}], "expect": "escalate"},
+    {"name": "vocabulary: jwt in content", "changes": [{"path": "src/orders/process.py", "added": ["token = jwt.encode(claims, key)"]}], "expect": "escalate"},
+    {"name": "vocabulary: csrf in content", "changes": [{"path": "src/orders/process.py", "added": ["csrf_protect = False"]}], "expect": "escalate"},
+    {"name": "vocabulary: cors in content", "changes": [{"path": "src/orders/process.py", "added": ["app.config.cors = True"]}], "expect": "escalate"},
+    {"name": "vocabulary: sso in content", "changes": [{"path": "src/orders/process.py", "added": ["sso_enabled = False"]}], "expect": "escalate"},
+    {"name": "vocabulary: saml in content", "changes": [{"path": "src/orders/process.py", "added": ["saml_response = parse(body)"]}], "expect": "escalate"},
+    {"name": "vocabulary: oidc in content", "changes": [{"path": "src/orders/process.py", "added": ["oidc_client = Client(issuer)"]}], "expect": "escalate"},
+    {"name": "vocabulary: sudo in content", "changes": [{"path": "src/orders/process.py", "added": ["run(\"sudo rm -rf /srv/cache\")"]}], "expect": "escalate"},
+    {"name": "vocabulary: privilege in content", "changes": [{"path": "src/orders/process.py", "added": ["drop_privileges()"]}], "expect": "escalate"},
+    {"name": "vocabulary: verify_signature in content", "changes": [{"path": "src/orders/process.py", "added": ["verify_signature = False"]}], "expect": "escalate"},
+    {"name": "vocabulary: login in a path", "changes": [{"path": "src/login.py", "added": ["x = 1"]}], "expect": "escalate"},
+    {"name": "vocabulary: session in a path", "changes": [{"path": "src/session/store.py", "added": ["x = 1"]}], "expect": "escalate"},
+    {"name": "vocabulary: a camelCase auth file name", "changes": [{"path": "src/checkAuth.js", "added": ["x = 1"]}], "expect": "escalate"},
+
+    {"name": "control: a word that only contains cors stays bounded", "changes": [{"path": "src/film/credits.py", "added": ["director = \"scorsese\""]}], "expect": "bounded-review"},
+    {"name": "control: pseudo_code is not sudo", "changes": [{"path": "src/format/hint.py", "added": ["pseudo_code = render(value)"]}], "expect": "bounded-review"},
+    {"name": "control: a plain source line with no auth word stays bounded", "changes": [{"path": "src/format/date.py", "added": ["return value.strftime(\"%Y-%m-%d\")"]}], "expect": "bounded-review"}
+  ]
+}

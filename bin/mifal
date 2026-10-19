@@ -1,0 +1,17 @@
+#!/bin/bash
+# The mifal command. Resolves its real location (it is usually reached through ~/.local/bin/mifal) and runs the Python CLI beside it.
+set -eu
+
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+    dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    case "$src" in
+        /*) ;;
+        *) src="$dir/$src" ;;
+    esac
+done
+root="$(cd -P "$(dirname "$src")/.." && pwd)"
+
+# -B: write no bytecode, so an install leaves no files the Manifest does not know about.
+exec python3 -B -I "$root/lib/mifal_cli.py" "$@"

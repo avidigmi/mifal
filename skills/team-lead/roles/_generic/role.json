@@ -1,0 +1,19 @@
+{
+  "role": "_generic",
+  "summary": "Fallback onboarding for a role with no shipped folder. Covers the fleet-wide floor: contracts, doorbell, self-report. The lead is flagged to create a proper role folder or confirm the generic fit.",
+  "defaultLatitude": "look",
+  "kind": "research",
+  "skills": [],
+  "toolsExpected": [],
+  "toolsCheck": "python3 stewardship/steward.py ledger show",
+  "readFirst": [
+    "references/contracts/README.md",
+    "references/contracts/doorbell.md",
+    "references/contracts/brief.md",
+    "references/contracts/receipt.md",
+    "GLOSSARY.md",
+    "stewardship/briefs/TEMPLATE.md"
+  ],
+  "stopRuleDefault": "Stop after two failed approaches and write up what you learned. Stopping honestly is a good outcome.",
+  "unknownRoleFlag": true
+}

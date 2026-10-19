@@ -1,0 +1,5 @@
+interface:
+  display_name: "Engineering Workflow"
+  short_description: "Run ordered Matt phases with evidence gates"
+policy:
+  allow_implicit_invocation: true

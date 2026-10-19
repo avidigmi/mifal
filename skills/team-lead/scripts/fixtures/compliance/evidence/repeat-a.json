@@ -1,0 +1,9 @@
+{
+  "task": "10",
+  "member": "kai",
+  "files_changed": ["src/alpha.ts"],
+  "commands": ["pnpm test", "git commit -m 'wip'"],
+  "commit_messages": ["wip"],
+  "claims": [{"claim": "tests", "status": "passed"}],
+  "approved_by": null
+}

@@ -1,0 +1,9 @@
+{
+  "task": "9",
+  "member": "kai",
+  "files_changed": ["src/compliance.ts"],
+  "commands": ["pnpm test", "git commit -m 'feat: add compliance gate'"],
+  "commit_messages": ["feat: add compliance gate"],
+  "claims": [{"claim": "tests", "status": "passed"}],
+  "approved_by": null
+}

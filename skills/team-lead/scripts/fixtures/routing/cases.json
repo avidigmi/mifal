@@ -1,0 +1,29 @@
+{
+  "routes": ["bounded-review", "deep-review", "escalate"],
+  "cases": [
+    {"name": "plain doc typo is bounded", "changes": [{"path": "docs/usage.md", "added": ["Fix typo: receive."]}], "expect": "bounded-review"},
+    {"name": "ordinary source file, no sensitive signal, is bounded", "changes": [{"path": "src/format/date.py", "added": ["return value.strftime('%Y-%m-%d')"]}], "expect": "bounded-review"},
+    {"name": "skill markdown is docs-as-policy", "changes": [{"path": "skills/team-lead/SKILL.md", "added": ["Prefer short messages."]}], "expect": "deep-review"},
+    {"name": "AGENTS.md rule is docs-as-policy", "changes": [{"path": "AGENTS.md", "added": ["- Never run tests twice."]}], "expect": "deep-review"},
+    {"name": "role brief template is docs-as-policy", "changes": [{"path": "skills/team-lead/roles/_generic/brief-template.md", "added": ["Reply first."]}], "expect": "deep-review"},
+    {"name": "test oracle edit is not tests-only", "changes": [{"path": "tests/test_billing.py", "added": ["assert total == 90.00"]}], "expect": "deep-review"},
+    {"name": "verifier script is an oracle", "changes": [{"path": "scripts/verify_claim.py", "added": ["return True"]}], "expect": "deep-review"},
+    {"name": "CI workflow", "changes": [{"path": ".github/workflows/ci.yml", "added": ["continue-on-error: true"]}], "expect": "deep-review"},
+    {"name": "hook script", "changes": [{"path": ".claude/hooks/team-stop.sh", "added": ["exit 0"]}], "expect": "deep-review"},
+    {"name": "dependency manifest", "changes": [{"path": "package.json", "added": ["\"left-pad\": \"^1.3.0\""]}], "expect": "deep-review"},
+    {"name": "lockfile", "changes": [{"path": "package-lock.json", "added": ["\"resolved\": \"https://example.test/x.tgz\""]}], "expect": "deep-review"},
+    {"name": "one-line auth change in an auth path", "changes": [{"path": "src/auth/guard.js", "added": ["if (user) return next();"]}], "expect": "escalate"},
+    {"name": "one-line auth change in an ordinary file, by content", "changes": [{"path": "src/users/list.js", "added": ["if (req.user.role !== 'admin') return deny();"]}], "expect": "escalate"},
+    {"name": "permission setting", "changes": [{"path": "config/permissions.json", "added": ["\"allow\": [\"*\"]"]}], "expect": "escalate"},
+    {"name": "ownership policy", "changes": [{"path": "CODEOWNERS", "added": ["* @someone"]}], "expect": "escalate"},
+    {"name": "self-policy: the routing reference itself", "changes": [{"path": "skills/team-lead/references/review-routing.md", "added": ["bounded-review for all"]}], "expect": "escalate"},
+    {"name": "self-policy: the router script itself", "changes": [{"path": "skills/team-lead/scripts/route_risk.py", "added": ["return 'bounded-review'"]}], "expect": "escalate"},
+    {"name": "self-policy: a review skill", "changes": [{"path": "skills/receiving-code-review/SKILL.md", "added": ["A dispute is valid if confident."]}], "expect": "escalate"},
+    {"name": "rename out of an auth path inspects the old path", "changes": [{"path": "src/session.js", "old_path": "src/auth/session.js", "added": []}], "expect": "escalate"},
+    {"name": "rename into a policy path inspects the new path", "changes": [{"path": "skills/x/SKILL.md", "old_path": "notes/x.md", "added": []}], "expect": "deep-review"},
+    {"name": "rename between two plain paths stays bounded", "changes": [{"path": "docs/guide.md", "old_path": "docs/usage.md", "added": []}], "expect": "bounded-review"},
+    {"name": "unknown path defaults upward", "changes": [{"path": "weird/blob.xyz", "added": ["??"]}], "expect": "deep-review"},
+    {"name": "no changes listed is unresolved, so upward", "changes": [], "expect": "deep-review"},
+    {"name": "mixed change takes the highest route", "changes": [{"path": "docs/usage.md", "added": ["x"]}, {"path": "src/auth/guard.js", "added": ["y"]}], "expect": "escalate"}
+  ]
+}

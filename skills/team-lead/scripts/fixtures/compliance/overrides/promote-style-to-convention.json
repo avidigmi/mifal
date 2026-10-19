@@ -1,0 +1,9 @@
+{
+  "overrides": [
+    {
+      "match": "single quotes",
+      "tier": 1,
+      "why": "this project enforces quote style in CI, so it is a convention, not a preference"
+    }
+  ]
+}

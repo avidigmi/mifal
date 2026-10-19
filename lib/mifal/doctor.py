@@ -1,0 +1,183 @@
+"""mifal doctor: prove an install is healthy. Read-only: it writes nothing, uses no network, runs no harness,
+and opens no settings, token or credential file; it reads Mifal's own files and the rules files it wired."""
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from . import harness
+from . import herdr
+from . import manifest as mf
+from .install import moved_folders
+from .manifest import expected, state
+
+REINSTALL = "run ./install.sh in your Mifal clone; a file you edited stops it until you pass --overwrite-edits, " \
+            "which saves a copy first"
+ROOT_VARIABLES = ("CLAUDE_CONFIG_DIR", "CODEX_HOME", "PI_CODING_AGENT_DIR", "OPENCODE_CONFIG_DIR",
+                  "XDG_CONFIG_HOME")
+
+
+class Report:
+    def __init__(self, out):
+        self.out, self.counts = out, {"PASS": 0, "WARN": 0, "FAIL": 0}
+
+    def line(self, status, check, detail, fix=None):
+        self.counts[status] += 1
+        self.out(f"{status} {check}: {detail}")
+        if fix:
+            self.out(f"     fix: {fix}")
+
+
+def _validator(h):
+    path = h.pool / "team-lead" / "scripts" / "validate_contracts.py"
+    spec = importlib.util.spec_from_file_location("mifal_installed_validator", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return path, module
+
+
+def doctor(h: mf.Home, env, out) -> int:
+    r = Report(out)
+    loaded = mf.load(h)
+    if loaded is None:
+        r.line("FAIL", "manifest", f"no Manifest at {h.show(h.manifest)}", "run ./install.sh in your Mifal clone")
+        return 1
+    data = loaded[0]
+    if data.get("state") != "complete":
+        r.line("FAIL", "manifest", "an install was interrupted", "run ./install.sh in your Mifal clone to roll it back")
+        return 1
+    show = h.show
+
+    for line in moved_folders(h, data.get("folders", {})):
+        r.line("FAIL", "folders", line, "put the folder back where it was")
+
+    layout = [h.engine / "bin" / "mifal", h.engine / "AGENTS.md", h.pool]
+    missing = [show(p) for p in layout if not p.exists()]
+    linked = os.path.islink(h.link) and os.readlink(h.link) == str(h.engine / "bin" / "mifal")
+    if missing or not linked:
+        r.line("FAIL", "layout", "missing " + ", ".join(missing + ([] if linked else [show(h.link)])), REINSTALL)
+    else:
+        r.line("PASS", "layout", f"engine {show(h.engine)}, Pool {show(h.pool)}, command {show(h.link)}")
+
+    changed = [show(e["path"]) for e in data["entries"]
+               if e["kind"] in ("file", "symlink") and state(Path(e["path"])) != expected(e)]
+    if changed:
+        more = f" and {len(changed) - 5} more" if len(changed) > 5 else ""
+        r.line("FAIL", "manifest", f"{len(changed)} installed path(s) changed or missing: "
+               + ", ".join(changed[:5]) + more, REINSTALL)
+    else:
+        r.line("PASS", "manifest", f"{sum(e['kind'] in ('file', 'symlink') for e in data['entries'])} paths as installed")
+
+    guide = h.engine / "AGENTS.md"
+    guide_sha = hashlib.sha256(guide.read_bytes()).hexdigest() if guide.is_file() else None
+    blocks = {e["path"]: e for e in data["entries"] if e["kind"] == "block"}
+    skills = sorted(p.name for p in h.pool.iterdir() if (p / "SKILL.md").is_file()) if h.pool.is_dir() else []
+    for name, rec in sorted(data.get("harnesses", {}).items()):
+        if rec["status"] != "wired":
+            w = harness.plan(name, h.home, env, Path(rec["root"]), show)
+            if w.skip:
+                why, _, fix = w.skip.partition(". ")
+                r.line("FAIL", f"guide {name}", "not wired: " + why.split(": ", 1)[-1], fix)
+            else:
+                r.line("WARN", f"guide {name}", "not wired yet; run ./install.sh to wire it")
+            continue
+        rules, root = Path(rec["rules"]), Path(rec["root"])
+        _guide(r, name, rules, root, blocks.get(rec["rules"]), guide_sha, h, env)
+        if name == "claude":
+            wrong = [n for n in skills if not os.path.islink(root / "skills" / n)
+                     or os.readlink(root / "skills" / n) != str(h.pool / n)]
+            if wrong:
+                r.line("FAIL", "skills claude", f"{len(wrong)} skill link(s) missing or changed in "
+                       f"{show(root / 'skills')}: " + ", ".join(wrong[:5]), REINSTALL)
+            else:
+                r.line("PASS", "skills claude", f"{len(skills)} links in {show(root / 'skills')}")
+        else:
+            r.line("PASS", f"skills {name}", f"reads {show(h.pool)} natively, {len(skills)} skills")
+
+    try:
+        path, validator = _validator(h)
+    except (OSError, SyntaxError) as e:
+        r.line("FAIL", "validator", f"cannot load the contract validator ({e})", REINSTALL)
+    else:
+        run = subprocess.run([sys.executable, "-B", "-I", str(path), "selfcheck"], capture_output=True, text=True,
+                             stdin=subprocess.DEVNULL, timeout=120)
+        if run.returncode == 0:
+            r.line("PASS", "validator", "selfcheck passed")
+        else:
+            r.line("FAIL", "validator", "selfcheck failed: " + (run.stdout + run.stderr).strip().splitlines()[-1],
+                   REINSTALL)
+        errors = validator.workflow_map_errors(h.pool, lambda p: Path(p).read_text(encoding="utf-8"))
+        if errors:
+            r.line("FAIL", "ask-matt pin", errors[0],
+                   "restore ~/.agents/skills/ask-matt/SKILL.md: " + REINSTALL)
+        else:
+            r.line("PASS", "ask-matt pin", "the workflow map matches the installed Ask Matt body")
+
+    _herdr(r, show)
+
+    if env.get("FACTORY_HOME_OVERRIDE"):
+        r.line("WARN", "droid", "FACTORY_HOME_OVERRIDE is set; Droid may not read the wiring in ~/.factory")
+    for variable in ROOT_VARIABLES:
+        value = env.get(variable)
+        if value and os.path.isabs(value) and not (os.path.realpath(value) + os.sep).startswith(str(h.real) + os.sep):
+            out(f"WARN {variable} is {value}, outside your home folder")
+            r.counts["WARN"] += 1
+
+    out(f"doctor: {r.counts['PASS']} passed, {r.counts['WARN']} warning(s), {r.counts['FAIL']} failed")
+    return 1 if r.counts["FAIL"] else 0
+
+
+def _guide(r, name, rules: Path, root: Path, entry, guide_sha, h, env):
+    show, check = h.show, f"guide {name}"
+    now = harness.reads_now(name, h.home, env, root)
+    if now is not None and now != rules:
+        w = harness.plan(name, h.home, env, root, show)
+        r.line("FAIL", check, f"{harness.TITLES[name]} reads {show(now)}, not {show(rules)}",
+               (w.skip or "").split(". ", 1)[-1])
+        return
+    text = rules.read_text(encoding="utf-8") if rules.is_file() else ""
+    found = harness.BLOCK.findall(text)
+    if entry is None or [b for b in found if harness.digest(b) == entry["sha256"]] == []:
+        r.line("FAIL", check, f"the Mifal block in {show(rules)} is missing or edited",
+               f"restore it: {REINSTALL}")
+        return
+    if f"guide=sha256:{guide_sha}" not in found[0].splitlines()[0]:
+        r.line("FAIL", check, f"the block in {show(rules)} carries another Guide than {show(h.engine / 'AGENTS.md')}",
+               REINSTALL)
+        return
+    if name == "codex" and len(text.encode("utf-8")) > 0.9 * harness.CODEX_CAP:
+        r.line("WARN", check, f"{show(rules)} is {len(text.encode('utf-8'))} bytes, near Codex's 32 KiB default cap")
+        return
+    r.line("PASS", check, f"block in {show(rules)}")
+
+
+def _herdr(r, show):
+    req = herdr.check()
+    if req.status == "missing":
+        r.line("FAIL", "herdr", "not found on PATH", "install it with `brew install herdr`, or run ./install.sh again")
+        return
+    if req.status == "old":
+        r.line("FAIL", "herdr", f"{'.'.join(map(str, req.version))} is older than "
+               f"{'.'.join(map(str, herdr.MINIMUM))}", herdr.upgrade_command(req.path))
+        return
+    if req.status != "ok":
+        r.line("FAIL", "herdr", f"{show(req.path)} does not report a Herdr version",
+               "move it aside or fix it, then run ./install.sh again")
+        return
+    version = ".".join(map(str, req.version))
+    try:
+        status = subprocess.run([req.path, "status", "--json"], capture_output=True, text=True,
+                                stdin=subprocess.DEVNULL, timeout=10)
+        server = json.loads(status.stdout).get("server", {})
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        server = {}
+    if server.get("running"):
+        r.line("PASS", "herdr", f"{version}, server {server.get('version')}")
+    else:
+        r.line("PASS", "herdr", f"{version}, server not running")
+        r.line("WARN", "herdr server", "not running; start Herdr with `herdr` when you want a team")

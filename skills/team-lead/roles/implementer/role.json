@@ -1,0 +1,16 @@
+{
+  "role": "implementer",
+  "summary": "Executes implementation briefs end to end: reads the brief, builds inside the stated latitude, verifies before claiming done, files the receipt. Typical latitude is do-tell.",
+  "defaultLatitude": "do-tell",
+  "kind": "implementation",
+  "skills": ["implement", "tdd", "verification-before-completion", "diagnosing-bugs"],
+  "toolsExpected": ["editor/shell", "test runner", "git"],
+  "toolsCheck": "python3 stewardship/steward.py ledger show",
+  "readFirst": [
+    "references/contracts/brief.md",
+    "references/contracts/receipt.md",
+    "references/contracts/doorbell.md",
+    "GLOSSARY.md"
+  ],
+  "stopRuleDefault": "Stop after two failed approaches and write up what you learned. An honest stop with evidence beats reinterpreting the goal."
+}

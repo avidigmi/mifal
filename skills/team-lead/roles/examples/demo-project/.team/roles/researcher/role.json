@@ -1,0 +1,5 @@
+{
+  "defaultLatitude": "propose",
+  "summary": "Demo-project researcher: explores AND recommends. This project expects a recommendation section in every research return, so the default latitude is propose, not look.",
+  "stopRuleDefault": "Stop after three failed search strategies (this project's domain is poorly indexed; the shipped cap of two gives up too early)."
+}

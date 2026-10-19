@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "kind": "compliance-tier-defaults",
+  "description": "Shipped tier-classification patterns for AGENTS.md rules. Rules are matched case-insensitively; a rule matching patterns from several tiers takes the MOST conservative (lowest-numbered) tier and says so. A project overrides tiers with .compliance-overrides.json at its root; it never edits this file.",
+  "unmatched_default_tier": 1,
+  "tiers": {
+    "0": {
+      "name": "safety hard line",
+      "enforcement": "enforced: a violation blocks dispatch",
+      "patterns": [
+        "secret|credential|password|api.?key|access token|private key|\\.env\\b",
+        "\\brm -rf\\b|\\bpush --force\\b|\\bpush -f\\b|\\bforce.?push\\b|\\breset --hard\\b|\\bdrop table\\b|\\bgit clean\\b",
+        "\\bdestructive\\b",
+        "(publish|deploy|release)[^\\n]{0,80}(approval|approved|permission|explicit|confirm)",
+        "(approval|approved|permission|explicit|confirm)[^\\n]{0,80}(publish|deploy|release)"
+      ]
+    },
+    "1": {
+      "name": "project convention",
+      "enforcement": "checked per task; reported in the task's compliance report",
+      "patterns": [
+        "\\bbefore (committing|pushing)\\b",
+        "\\bconventional commits?\\b|\\bcommit messages?\\b|\\bcommit style\\b",
+        "\\bchangelog\\b",
+        "\\bpull requests?\\b",
+        "\\brun\\b[^\\n]{0,40}\\b(tests?|lint|typecheck|build|checks?)\\b",
+        "\\b(tests?|lint|typecheck|build)\\b[^\\n]{0,40}\\b(must|required|pass)\\b"
+      ]
+    },
+    "2": {
+      "name": "style preference",
+      "enforcement": "advised; never blocks",
+      "patterns": [
+        "\\bprefer\\b",
+        "\\bindent(ation)?\\b|\\bquotes?\\b|\\bline length\\b|\\bformatting\\b",
+        "under ~?[0-9]+ (lines|loc)\\b"
+      ]
+    }
+  }
+}

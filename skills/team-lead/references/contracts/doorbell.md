@@ -1,0 +1,77 @@
+# The doorbell contract
+
+A doorbell is a member's signal that attention is needed. It is one line,
+and the same line serves two readers: a human watching the pane, and any
+agent (or the validator) parsing it as a durable record. State transitions
+observed over a transport annotate the doorbell; they never replace it.
+
+## Shape
+
+```
+<TYPE> <task> <payload>
+```
+
+- `TYPE` — one of `DONE`, `HELP`, `HELD`, `STOPPED` (uppercase, exact).
+- `task` — the stable task id (`7`) or an attempt id (`7.2`). Attempt ids
+  belong to corrections; ring the attempt you are closing.
+- `payload` — one token or free text, per type below. Never empty.
+
+| Type | Payload | Meaning |
+|------|---------|---------|
+| `DONE` | artifact path (single token, no spaces) | The return is written; read it. |
+| `HELP` | the reason (free text) | Blocked with a specific question for the lead, answerable by resuming with guidance. |
+| `HELD` | what it waits on (free text) | Blocked on an approval that belongs to the human. |
+| `STOPPED` | why (free text) | Stopped per the stop rule; the writeup is in the return file. |
+
+**Graded stop.** Any member may halt work on evidence of damage, in rising
+steps, each a normal report: concern → `HELP <why>`, uncomfortable →
+`HELD <what it waits on>`, stop → `STOPPED <why>` for your own task. The lead
+rejects a ring from anyone who does not own the open attempt, so a reviewer
+or validator who must halt *someone else's* task rings `HELD` on its own task
+with a `STOP:` prefix and the evidence, for example
+`HELD 9 STOP: task 7 is rewriting the shared fixture; evidence in .team/tasks/9.md`.
+That reaches the human through the lead's normal `HELD` escalation. It does
+not halt task 7 by itself: a cross-task STOP is not built and would need
+`lead.py` support.
+<!-- scar: 2026-10-16 — management research #12: stop-work authority; a non-owner's ring is rejected by lead.py, so the route is HELD with a STOP: prefix -->
+
+For `DONE` the payload is the path to the return file and nothing else —
+prose belongs in the file. For the other three, keep the payload to one
+specific phrase; the detail lives in the record.
+
+## One line, two readers
+
+Pane-visible text a human can watch:
+
+```
+DONE 7 .team/tasks/7.md
+```
+
+The same line parsed as a record any agent can read
+(`validate_contracts.py doorbell --parse`):
+
+```json
+{"type": "DONE", "task": "7", "attempt": null, "artifact": ".team/tasks/7.md"}
+```
+
+An attempt ring parses with `attempt` set:
+
+```
+DONE 7.2 .team/tasks/7.md
+→ {"type": "DONE", "task": "7", "attempt": "7.2", "artifact": ".team/tasks/7.md"}
+```
+
+## Rules
+
+- **Write the file first, ring once.** The file is authoritative; the
+  doorbell is a hint pointing at it. If the lead isn't ready within a bounded
+  wait, leave the file — it stands alone.
+- **The ring proves nothing by itself.** Delivery is proven by the receipt
+  the ring names, never by the transport's return code. A lead that timed
+  out inspects the member and the record before resending.
+- **Attempt ids protect corrections.** While attempt `7.2` is open, a late
+  `DONE 7` closes nothing.
+- **Small messages stay small.** The doorbell is the whole signal: status,
+  task id, and the path or one phrase. No reports in the pane.
+
+Fixtures: `scripts/fixtures/doorbell/` (good and bad lines).

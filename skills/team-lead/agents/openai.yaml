@@ -1,0 +1,4 @@
+interface:
+  display_name: "Team Lead"
+  short_description: "Lead an agent team like an engineering manager: own the outcome, brief well, check evidence, coach, and improve every cycle"
+  default_prompt: "Use $team-lead to take over, onboard, or resume my agent team (including Herdr panes) and lead it to the agreed outcome."
