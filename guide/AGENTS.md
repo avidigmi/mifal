@@ -5,7 +5,7 @@ Shared rules for every coding-agent session on this machine, installed by Mifal.
 ## Engineering workflow
 
 - Matt owns engineering in every harness.
-- Before acting on a research, planning, build, debug or review request, read `~/.agents/skills/engineering-workflow/SKILL.md` completely and follow it.
+- Before acting on a research, planning, build, debug or review request, load the `engineering-workflow` skill completely and follow it: through your native skill tool when you have one (in Claude Code, the Skill tool), otherwise by reading `~/.agents/skills/engineering-workflow/SKILL.md`.
 - Invoke a skill on your own when its description matches the task; a slash command is not needed. Load only the specialist you selected. A skill's external actions, such as publishing, messaging or deploying, still need their own authorization.
 - For sustained coordination of engineering work across Herdr panes, read `~/.agents/skills/team-lead/references/herdr.md` before the first dispatch, and run its pane checks before every prompt.
 

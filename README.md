@@ -34,7 +34,7 @@ Mifal writes only into your home folder, and only where the dry run says. On a m
 <!-- writes:begin -->
 | Where | What Mifal writes |
 |---|---|
-| `~/.agents/mifal/` | The engine: the `mifal` command and its library, the Herdr adapter and tools, the Guide (`AGENTS.md`) and the Manifest; 44 files |
+| `~/.agents/mifal/` | The engine: the `mifal` command and its library, the experimental Herdr adapter and tools, the Guide (`AGENTS.md`) and the Manifest; 44 files |
 | `~/.agents/skills/` | 39 skills, 241 files |
 | `~/.local/bin/mifal` | A link to the engine's `mifal` command |
 | `~/.claude/CLAUDE.md` | A Marked block that imports the Guide |
@@ -88,6 +88,10 @@ This matrix is provisional. A cell is filled only from a recorded live check: a 
 | macOS | untested | untested | untested | untested | untested |
 
 Linux and Windows are not supported in this release. Droid's rules file location is documented by Factory, not yet confirmed live.
+
+## Maintaining
+
+[`MAINTAINING.md`](MAINTAINING.md) says how upstream skill, Herdr and agent changes get into Mifal, how Mifal's changes go back upstream, and how a release reaches `mifal update`.
 
 ## Credits
 

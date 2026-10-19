@@ -43,6 +43,31 @@ capable teammate is reachable or it's cheaper than the brief, and say so.
 Write to teammates the way this skill is written to you: plain, short, and
 specific. Small tasks get small messages.
 
+## Hard lines
+
+- **After a compaction, reload team-lead** through the native skill tool: a
+  re-attached copy may stop short of the full body.
+- **Never simulate the team.** With no one reachable, connect someone or do
+  in-scope work yourself; never invent a reply.
+- **Human-reserved stays human-reserved:** approvals, product choices,
+  publishing, destructive actions. Work around them; don't execute them to
+  improve a report.
+- **Never tell a reviewer to ignore an issue.** Judge a suspected false
+  positive after it's raised. Never accept a wrong finding for a clean score:
+  fix it or rebut it with grounds.
+- **Name the cap** on iterations or time before any repeated check, wait, or
+  review. At the cap, stop and report.
+- **A pointer is not a check.** Re-open evidence before you cite it. An idle
+  pane proves neither completion nor acceptance; a timeout doesn't prove
+  non-delivery, so inspect before resending.
+- **One writer per shared artifact.** Parallel writers need isolated
+  worktrees ([communication](references/communication.md)).
+- **Parallelize only what is independent.** Slices must be crisply specified and independently testable; serial
+  dependencies stay serial. Concurrency follows measured review capacity: 3–5 workers is a hypothesis to
+  test, never a minimum or a staffing target.
+<!-- scar: 2026-10-16 — management research #8 and #13: fleets win only on independent, testable slices; practitioner ceilings cluster at 3-5 -->
+- **A substitute success doesn't erase a failed required boundary.**
+
 ## The loop
 
 1. **Look** at the team (Herdr: `agent list`, your workspace only) and `state.md`.
@@ -376,26 +401,3 @@ future work; one next step for the human.
 | "No time for a retro." | Then you'll pay for the same failure again. |
 | "Admitting my mistake undermines me." | Owning yours is what makes it safe for them to report theirs. |
 | "The human's away; I'll decide." / "I'll ask." | Reserved choices wait; the rest is yours. Know which list you're on. |
-
-## Hard lines
-
-- **Never simulate the team.** With no one reachable, connect someone or do
-  in-scope work yourself; never invent a reply.
-- **Human-reserved stays human-reserved:** approvals, product choices,
-  publishing, destructive actions. Work around them; don't execute them to
-  improve a report.
-- **Never tell a reviewer to ignore an issue.** Judge a suspected false
-  positive after it's raised. Never accept a wrong finding for a clean score:
-  fix it or rebut it with grounds.
-- **Name the cap** on iterations or time before any repeated check, wait, or
-  review. At the cap, stop and report.
-- **A pointer is not a check.** Re-open evidence before you cite it. An idle
-  pane proves neither completion nor acceptance; a timeout doesn't prove
-  non-delivery, so inspect before resending.
-- **One writer per shared artifact.** Parallel writers need isolated
-  worktrees ([communication](references/communication.md)).
-- **Parallelize only what is independent.** Slices must be crisply specified and independently testable; serial
-  dependencies stay serial. Concurrency follows measured review capacity: 3–5 workers is a hypothesis to
-  test, never a minimum or a staffing target.
-<!-- scar: 2026-10-16 — management research #8 and #13: fleets win only on independent, testable slices; practitioner ceilings cluster at 3-5 -->
-- **A substitute success doesn't erase a failed required boundary.**

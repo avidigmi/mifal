@@ -102,6 +102,29 @@ class ShippedSet(unittest.TestCase):
         self.assertEqual(v.workflow_map_errors(REPO / "skills", lambda p: p.read_text(encoding="utf-8")), [])
 
 
+class Loading(unittest.TestCase):
+    """Claude Code re-attaches skills loaded through its Skill tool after compaction, up to about 5k tokens each;
+    a file read is not re-attached."""
+
+    def test_the_guide_loads_the_engineering_workflow_natively_first(self):
+        text = (REPO / "guide/AGENTS.md").read_text(encoding="utf-8")
+        self.assertIn("load the `engineering-workflow` skill completely", text)
+        self.assertIn("native skill tool", text)
+        self.assertNotIn("read `~/.agents/skills/engineering-workflow/SKILL.md` completely", text)
+
+    def test_the_engineering_workflow_loads_ask_matt_and_team_lead_natively_first(self):
+        text = (REPO / "skills/engineering-workflow/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("Load the `ask-matt` skill completely, as step 4 loads a skill", text)
+        self.assertIn("load the `team-lead` skill completely the same way", text)
+        self.assertIn("Prefer the native skill tool", text)
+
+    def test_team_leads_hard_lines_survive_a_truncated_reattach(self):
+        text = (REPO / "skills/team-lead/SKILL.md").read_text(encoding="utf-8")
+        start = text.index("\n## Hard lines\n")
+        end = text.find("\n## ", start + 1)
+        self.assertLess(end if end > 0 else len(text), 8000)
+
+
 class Closure(unittest.TestCase):
     def test_no_shipped_body_names_an_unshipped_skill(self):
         found = []

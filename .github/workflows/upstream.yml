@@ -1,0 +1,35 @@
+name: upstream
+
+on:
+  schedule:
+    - cron: "41 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: What changed upstream since each recorded commit
+        id: status
+        run: |
+          set +e
+          python3 maint/upstream.py status > status.txt 2>&1
+          code=$?
+          cat status.txt
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          [ "$code" -le 1 ]
+      - name: Keep one issue open while anything is behind
+        if: steps.status.outputs.code == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Upstream changes waiting"
+          body="$(printf 'From the weekly upstream check (%s).\n\nTake them with `python3 maint/upstream.py pull SKILL`, as MAINTAINING.md describes.\n\n```\n%s\n```\n' "$(date -u +%F)" "$(cat status.txt)")"
+          number="$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')"
+          if [ -n "$number" ]; then gh issue edit "$number" --body "$body"; else gh issue create --title "$title" --body "$body"; fi

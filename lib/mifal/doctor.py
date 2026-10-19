@@ -118,7 +118,7 @@ def doctor(h: mf.Home, env, out) -> int:
         else:
             r.line("PASS", "ask-matt pin", "the workflow map matches the installed Ask Matt body")
 
-    _herdr(r, show)
+    _herdr(r, h)
 
     if env.get("FACTORY_HOME_OVERRIDE"):
         r.line("WARN", "droid", "FACTORY_HOME_OVERRIDE is set; Droid may not read the wiring in ~/.factory")
@@ -156,7 +156,8 @@ def _guide(r, name, rules: Path, root: Path, entry, guide_sha, h, env):
     r.line("PASS", check, f"block in {show(rules)}")
 
 
-def _herdr(r, show):
+def _herdr(r, h):
+    show = h.show
     req = herdr.check()
     if req.status == "missing":
         r.line("FAIL", "herdr", "not found on PATH", "install it with `brew install herdr`, or run ./install.sh again")
@@ -181,3 +182,26 @@ def _herdr(r, show):
     else:
         r.line("PASS", "herdr", f"{version}, server not running")
         r.line("WARN", "herdr server", "not running; start Herdr with `herdr` when you want a team")
+    _protocol(r, req.path, h.engine / "tools" / "herdr_adapter" / "api-schema.json")
+
+
+def _protocol(r, path, adapter_schema: Path):
+    """Herdr's bundled socket schema against the one the team lead's adapter was built for."""
+    check = "herdr protocol"
+    try:
+        theirs = json.loads(subprocess.run([path, "api", "schema", "--json"], capture_output=True, text=True,
+                                           stdin=subprocess.DEVNULL, timeout=10).stdout)
+        ours = json.loads(adapter_schema.read_text(encoding="utf-8"))
+    except (OSError, ValueError, subprocess.TimeoutExpired):
+        r.line("WARN", check, "could not compare `herdr api schema --json` with the adapter's schema; "
+               "the team lead may not work with this Herdr")
+        return
+    if theirs.get("protocol") != ours.get("protocol"):
+        r.line("WARN", check, f"Herdr speaks protocol {theirs.get('protocol')}, the team lead's experimental "
+               f"adapter speaks protocol {ours.get('protocol')} and refuses this Herdr; the team lead's raw "
+               "`herdr` commands still work, and `mifal update` brings an adapter built for it once released")
+    elif theirs != ours:
+        r.line("WARN", check, f"{ours.get('protocol')}, but its schema differs from the one the adapter was "
+               "built for; run `mifal update`, and report a team-mode failure if you see one")
+    else:
+        r.line("PASS", check, f"{ours.get('protocol')}, the schema the team lead's adapter speaks")

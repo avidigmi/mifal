@@ -301,5 +301,33 @@ class GrillerBriefTests(unittest.TestCase):
         self.assertEqual(validator("doorbell", "ROUND 1 2").returncode, 1)
 
 
+class TheFirstRefusalTeachesTests(unittest.TestCase):
+    """A stranger's first `brief --matt` lacks the Workflow section; the refusal shows one."""
+
+    FRONTMATTER = "---\ntask: 7\nowner: kai\nlatitude: do-tell\nreturn: .team/tasks/7.md\n---\n# Task\n"
+
+    def refusal(self, body):
+        with tempfile.TemporaryDirectory() as d:
+            brief = Path(d) / "7.md"
+            brief.write_text(self.FRONTMATTER + body)
+            result = validator("brief", str(brief), "--matt")
+        self.assertEqual(result.returncode, 1)
+        return result.stdout + result.stderr
+
+    def test_a_missing_workflow_section_is_refused_with_every_required_field_and_the_template(self):
+        out = self.refusal("")
+        self.assertIn("e.g.:\n", out)
+        example = out.split("e.g.:\n", 1)[1]
+        for key in ("Methodology: matt", "Executor: kai", "Route: build", "Phase: implement", "Next gate:",
+                    "Start:", "DDD: n/a:", "UX: n/a:", "Procedure: ~/.agents/skills/engineering-workflow/SKILL.md",
+                    "Procedure: ~/.agents/skills/ask-matt/SKILL.md", "Loaded:"):
+            self.assertIn(key, example)
+        self.assertIn("engineering-workflow/references/phase-record.md", out)
+
+    def test_two_workflow_sections_are_refused_as_two(self):
+        self.assertIn("2 '## Workflow' sections; keep one",
+                      self.refusal("\n## Workflow\nMethodology: matt\n\n## Workflow\nMethodology: matt\n"))
+
+
 if __name__ == "__main__":
     unittest.main()

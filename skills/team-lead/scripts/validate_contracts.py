@@ -207,8 +207,19 @@ def validate_workflow(text: str, path: Path, gate="entry", require_loads=True, r
     body_digest = body_digest or workflow_digest
     body = workflow_text(text).split("\n## Return", 1)[0]
     blocks = [b for h, b in sections(body, 2) if h.lower() == "workflow"]
-    if len(blocks) != 1:
-        return [f"{path}: missing '## Workflow' for the Matt check"]
+    if len(blocks) > 1:
+        return [f"{path}: {len(blocks)} '## Workflow' sections; keep one"]
+    if not blocks:
+        return [f"{path}: missing '## Workflow' for the Matt check; add one before '## Return', e.g.:\n"
+                "  ## Workflow\n  Methodology: matt\n  Executor: kai\n  Route: build\n  Phase: implement\n"
+                "  Next gate: the slice's tests pass\n  Start: <full 40-character commit SHA>\n"
+                "  DDD: n/a: no vendor behaviour in scope\n  UX: n/a: no user-facing change\n"
+                "  Procedure: ~/.agents/skills/engineering-workflow/SKILL.md\n"
+                "  Procedure: ~/.agents/skills/ask-matt/SKILL.md\n"
+                "  Loaded: ~/.agents/skills/ask-matt/SKILL.md | kai: sha256:<digest> <where you loaded it>\n"
+                "Executor is the brief's owner; `validate_contracts.py read <path>` prints a body's digest. "
+                "The rerun names anything still missing; the full template is in "
+                "engineering-workflow/references/phase-record.md."]
     fields = {}
     errors = []
     repeated = {"procedure": [], "loaded": [], "check": [], "cut": []}

@@ -24,7 +24,7 @@ def table(home: Path, paths) -> str:
     skills = {p.split("/")[2] for p in pool}
     links = sorted(p for p in paths if p.startswith(".claude/skills/") and (home / p).is_symlink())
     rows = [
-        ("~/.agents/mifal/", f"The engine: the `mifal` command and its library, the Herdr adapter and tools, the "
+        ("~/.agents/mifal/", f"The engine: the `mifal` command and its library, the experimental Herdr adapter and tools, the "
                              f"Guide (`AGENTS.md`) and the Manifest; {len(engine)} files"),
         ("~/.agents/skills/", f"{len(skills)} skills, {len(pool)} files"),
     ]

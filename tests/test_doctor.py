@@ -3,9 +3,10 @@ import re
 import shutil
 import unittest
 
-from support import PYTHON, Sandbox, snapshot
+from support import PYTHON, REPO, Sandbox, snapshot
 
 HERDR_STATUS = json.dumps({"client": {"version": "0.9.5"}, "server": {"running": True, "version": "0.9.5"}})
+SCHEMA = REPO / "tools/herdr_adapter/api-schema.json"
 HARNESSES = ("claude", "codex", "droid", "pi", "opencode")
 NETWORK = ("curl", "wget", "git", "nc", "ssh")
 # Files a harness keeps settings, tokens or credentials in. The doctor never opens any of them.
@@ -17,9 +18,16 @@ PRIVATE = (".claude/settings.json", ".claude/.credentials.json", ".codex/auth.js
 class Doctor(Sandbox):
     def setUp(self):
         super().setUp()
-        self.fake("herdr", 'case "$1" in --version) echo "herdr 0.9.5";; status) echo \'%s\';; esac' % HERDR_STATUS)
+        self.herdr_schema(SCHEMA.read_text())
         self.harness_fakes(*HARNESSES)
         self.install()
+
+    def herdr_schema(self, text):
+        """A fake Herdr 0.9.5 whose `herdr api schema --json` prints text."""
+        schema = self.root / "herdr-schema.json"
+        schema.write_text(text)
+        self.fake("herdr", 'case "$1" in --version) echo "herdr 0.9.5";; status) echo \'%s\';; '
+                           'api) [ "$2 $3" = "schema --json" ] && cat "%s";; esac' % (HERDR_STATUS, schema))
 
     def doctor(self, **kw):
         return self.mifal("doctor", check=False, **kw)
@@ -43,6 +51,7 @@ class Healthy(Doctor):
         for name in HARNESSES:
             self.assertRegex(result.stdout, rf"(?m)^PASS guide {name}\b")
         self.assertRegex(result.stdout, r"(?m)^PASS herdr: 0\.9\.5, server 0\.9\.5")
+        self.assertRegex(result.stdout, r"(?m)^PASS herdr protocol: 22, the schema the team lead's adapter speaks")
 
     def test_green_after_the_clone_is_deleted(self):
         shutil.rmtree(self.clone)
@@ -63,6 +72,26 @@ class Broken(Doctor):
     def test_missing_herdr_fails_with_its_fix(self):
         self.unfake("herdr")
         self.assert_fails_with_fix(self.doctor(), "herdr")
+
+    def test_a_herdr_with_another_protocol_warns_that_only_the_experimental_adapter_refuses_it(self):
+        schema = json.loads(SCHEMA.read_text())
+        self.herdr_schema(json.dumps(dict(schema, protocol=23)))
+        result = self.doctor()
+        self.assertEqual(self.failed(result), [], result.stdout)
+        self.assertRegex(result.stdout, r"(?m)^WARN herdr protocol: Herdr speaks protocol 23, the team lead's "
+                                        r"experimental adapter speaks protocol 22")
+
+    def test_a_herdr_schema_that_changed_within_the_protocol_warns(self):
+        schema = json.loads(SCHEMA.read_text())
+        self.herdr_schema(json.dumps(dict(schema, schemas=dict(schema["schemas"], extra={"type": "object"}))))
+        result = self.doctor()
+        self.assertEqual(self.failed(result), [], result.stdout)
+        self.assertRegex(result.stdout, r"(?m)^WARN herdr protocol: 22, but its schema differs")
+
+    def test_a_herdr_that_prints_no_schema_warns(self):
+        self.herdr_schema("")
+        result = self.doctor()
+        self.assertRegex(result.stdout, r"(?m)^WARN herdr protocol: ")
 
     def test_a_changed_ask_matt_body_fails_with_its_fix(self):
         body = self.home / ".agents/skills/ask-matt/SKILL.md"
