@@ -480,6 +480,15 @@ class ReadRuleTests(StepFixture):
         self.refused(self.rec({}, start, "review", done, extra_bodies={"code-review": ["2026-10-17T12:30:00Z"]}),
                      "code-review", "'review'")
 
+    def test_writing_for_agents_governs_retro_whatever_the_records_phase(self):
+        # Its map row names no phase before the parenthesis, so without a governed step it fell back to Phase.
+        start = [self.start("implement", "2026-10-17T10:00:00Z"), self.start("review", "2026-10-17T12:00:00Z"),
+                 self.start("retro", "2026-10-17T13:00:00Z")]
+        done = steps("Scope", "Grilling", "Implement", pending=("Review",))
+        self.passes(self.rec({}, start, "review", done, extra_bodies={"writing-for-agents": ["2026-10-17T12:30:00Z"]}))
+        self.refused(self.rec({}, start, "review", done, extra_bodies={"writing-for-agents": ["2026-10-17T13:30:00Z"]}),
+                     "writing-for-agents", "'retro'")
+
 
 class BranchOrderTests(StepFixture):
     """Correction 24.2, ruling 3: the branch is the parent's, and it is recorded before execution began."""

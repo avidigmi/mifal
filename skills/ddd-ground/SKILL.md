@@ -12,7 +12,8 @@ metadata:
 
 # Ground the plan and implementation
 
-Read [DDD](../ddd/SKILL.md) and apply **Keep one persistent note and ground the
+Load the `ddd` skill completely, through your native skill tool when you have one, otherwise by reading
+[DDD](../ddd/SKILL.md), and apply **Keep one persistent note and ground the
 plan**, performing steps 1 and 2 first wherever questions or sources are missing.
 That skill owns the procedure and Documentation basis format.
 

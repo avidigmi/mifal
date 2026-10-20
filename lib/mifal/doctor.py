@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -119,6 +120,11 @@ def doctor(h: mf.Home, env, out) -> int:
             r.line("PASS", "ask-matt pin", "the workflow map matches the installed Ask Matt body")
 
     _herdr(r, h)
+    if shutil.which("agent-browser"):
+        r.line("PASS", "agent-browser", "the agent-browser skill's CLI is on PATH")
+    else:
+        r.line("WARN", "agent-browser", "the agent-browser skill's CLI is not on PATH, and Mifal does not install it; "
+               "browser checks need it", "npm i -g agent-browser && agent-browser install")
 
     if env.get("FACTORY_HOME_OVERRIDE"):
         r.line("WARN", "droid", "FACTORY_HOME_OVERRIDE is set; Droid may not read the wiring in ~/.factory")
@@ -192,6 +198,8 @@ def _protocol(r, path, adapter_schema: Path):
         theirs = json.loads(subprocess.run([path, "api", "schema", "--json"], capture_output=True, text=True,
                                            stdin=subprocess.DEVNULL, timeout=10).stdout)
         ours = json.loads(adapter_schema.read_text(encoding="utf-8"))
+        if not isinstance(theirs, dict) or not isinstance(ours, dict):
+            raise ValueError("not a JSON object")
     except (OSError, ValueError, subprocess.TimeoutExpired):
         r.line("WARN", check, "could not compare `herdr api schema --json` with the adapter's schema; "
                "the team lead may not work with this Herdr")

@@ -13,7 +13,8 @@ metadata:
 
 # Compare code with documentation
 
-Read [DDD](../ddd/SKILL.md) and apply **Compare the actual result**, using its
+Load the `ddd` skill completely, through your native skill tool when you have one, otherwise by reading
+[DDD](../ddd/SKILL.md), and apply **Compare the actual result**, using its
 inspection/research steps to find the existing task note and refresh missing or
 stale context. That skill owns the procedure and persistent-note rules.
 

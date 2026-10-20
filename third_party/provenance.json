@@ -368,17 +368,32 @@
         "ddd-ground": {
           "upstream": "skills/ddd-ground",
           "commit": "d65c26b912e6182385a47af061aded58d9748273",
-          "tree": "13be2e25aea00b2cda2d43afc5728ad49991a510"
+          "tree": "13be2e25aea00b2cda2d43afc5728ad49991a510",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
         },
         "ddd-scope": {
           "upstream": "skills/ddd-scope",
           "commit": "d65c26b912e6182385a47af061aded58d9748273",
-          "tree": "644a544eec57848cdf67911e5b2192073d9536ff"
+          "tree": "644a544eec57848cdf67911e5b2192073d9536ff",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
         },
         "ddd-verify": {
           "upstream": "skills/ddd-verify",
           "commit": "d65c26b912e6182385a47af061aded58d9748273",
-          "tree": "a39f014aecad91470332ddf7a1588dfb157eef15"
+          "tree": "a39f014aecad91470332ddf7a1588dfb157eef15",
+          "modified": {
+            "changed": [
+              "SKILL.md"
+            ]
+          }
         }
       },
       "paths": [

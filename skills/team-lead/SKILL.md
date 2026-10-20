@@ -47,6 +47,13 @@ specific. Small tasks get small messages.
 
 - **After a compaction, reload team-lead** through the native skill tool: a
   re-attached copy may stop short of the full body.
+- **Gate before every dispatch, review and acceptance** in Matt work:
+  `validate_contracts.py workflow <state> --gate entry|review|accept` and
+  `brief <brief> --matt`, logged as a `Check:` line (M2).
+- **Pane checks before every prompt** when Herdr is the channel: read
+  [herdr](references/herdr.md) before the first pane operation.
+- **Review only settled work.** Every worker writing to the reviewed tree has
+  returned before the reviewer starts.
 - **Never simulate the team.** With no one reachable, connect someone or do
   in-scope work yourself; never invent a reply.
 - **Human-reserved stays human-reserved:** approvals, product choices,

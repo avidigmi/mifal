@@ -60,17 +60,32 @@ def tree_of(git_dir, commit, path):
     return result.stdout.strip() or None
 
 
-def files_at(git_dir, commit, path):
-    """{relative path: bytes} of every file under path at commit."""
+def files_at(git_dir, commit, path, executable=None):
+    """{relative path: bytes} of every file under path at commit; executable, when given, collects the 100755 ones."""
     out = git(git_dir, "ls-tree", "-r", "-z", f"{commit}:{path}").stdout
     files = {}
     for entry in filter(None, out.split("\0")):
         meta, rel = entry.split("\t", 1)
-        kind, sha = meta.split()[1:3]
-        if kind == "blob":
-            files[rel] = subprocess.run(["git", "--git-dir", str(git_dir), "cat-file", "blob", sha],
-                                        capture_output=True, check=True).stdout
+        mode, kind, sha = meta.split()[:3]
+        if mode == "120000" or kind != "blob":
+            raise Failed(f"{path}/{rel} is a {'symlink' if mode == '120000' else kind} at {commit[:12]}; "
+                         "upstream.py copies regular files only, so take this skill by hand")
+        if mode == "100755" and executable is not None:
+            executable.add(rel)
+        files[rel] = subprocess.run(["git", "--git-dir", str(git_dir), "cat-file", "blob", sha],
+                                    capture_output=True, check=True).stdout
     return files
+
+
+def refuse_links(repo: Path, name):
+    """pull writes only regular files inside the checkout, so a link on the way to any of them stops it."""
+    folder = repo / "skills" / name
+    found = [p for p in (repo / "skills", folder) if p.is_symlink()]
+    for root, dirs, files in os.walk(folder):
+        found += [Path(root) / e for e in dirs + files if (Path(root) / e).is_symlink()]
+    if found:
+        raise Failed(f"{found[0].relative_to(repo)} is a symlink; pull writes only regular files inside the "
+                     "checkout, so nothing was pulled")
 
 
 def files_on_disk(folder: Path):
@@ -163,19 +178,22 @@ def find(data, name):
 
 
 def pull(repo: Path, names) -> int:
-    data, conflicts = load(repo), 0
+    data, conflicts, planned = load(repo), 0, []
     for name in names:
         component, s = find(data, name)
+        refuse_links(repo, name)
         git_dir, head = fetch(component["repo"])
         now = tree_of(git_dir, head, s["upstream"])
         if now is None:
-            raise Failed(f"{s['upstream']} is gone upstream in {component['repo']}; nothing pulled for {name}")
+            raise Failed(f"{s['upstream']} is gone upstream in {component['repo']}; nothing pulled")
         if now == s["tree"]:
             print(f"{name}: up to date")
             continue
+        executable = set()
+        planned.append((name, component, s, head, now, files_at(git_dir, s["commit"], s["upstream"]),
+                        files_at(git_dir, head, s["upstream"], executable), executable))
+    for name, component, s, head, now, base, theirs, executable in planned:
         folder = repo / "skills" / name
-        base = files_at(git_dir, s["commit"], s["upstream"])
-        theirs = files_at(git_dir, head, s["upstream"])
         ours = files_on_disk(folder)
         for rel in sorted(set(base) | set(theirs) | set(ours)):
             b, t, o = base.get(rel), theirs.get(rel), ours.get(rel)
@@ -189,6 +207,7 @@ def pull(repo: Path, names) -> int:
                 else:
                     (folder / rel).parent.mkdir(parents=True, exist_ok=True)
                     (folder / rel).write_bytes(t)
+                    (folder / rel).chmod(0o755 if rel in executable else 0o644)
                     print(f"{'update' if o is not None else 'add'} {shown}")
             elif t is None:
                 conflicts += 1
@@ -199,6 +218,7 @@ def pull(repo: Path, names) -> int:
             else:
                 merged, clean = merge(o, b or b"", t)
                 (folder / rel).write_bytes(merged)
+                (folder / rel).chmod(0o755 if rel in executable else 0o644)
                 if clean:
                     print(f"merge {shown}")
                 else:
@@ -236,8 +256,9 @@ def diff(repo: Path, name) -> int:
             continue
         a = (base.get(rel) or b"").decode("utf-8", errors="replace").splitlines(keepends=True)
         b = (ours.get(rel) or b"").decode("utf-8", errors="replace").splitlines(keepends=True)
-        sys.stdout.writelines(difflib.unified_diff(a, b, f"a/{s['upstream']}/{rel}" if rel in base else "/dev/null",
-                                                   f"b/{s['upstream']}/{rel}" if rel in ours else "/dev/null"))
+        for line in difflib.unified_diff(a, b, f"a/{s['upstream']}/{rel}" if rel in base else "/dev/null",
+                                         f"b/{s['upstream']}/{rel}" if rel in ours else "/dev/null"):
+            sys.stdout.write(line if line.endswith("\n") else line + "\n\\ No newline at end of file\n")
     return 0
 
 

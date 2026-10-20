@@ -1,6 +1,7 @@
 """maint/upstream.py: see what changed upstream, take it without losing Mifal's changes, offer Mifal's back."""
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -167,6 +168,52 @@ class Pull(Upstream):
         self.assertEqual(result.returncode, 0)
         self.assertEqual((self.mifal / "third_party/provenance.json").read_bytes(), before)
 
+    def test_a_symlink_in_the_skill_is_refused_before_any_write(self):
+        foreign = self.root / "foreign.md"
+        foreign.write_text(NOTES)
+        (self.mifal / "skills/foo/notes.md").unlink()
+        (self.mifal / "skills/foo/notes.md").symlink_to(foreign)
+        before = (self.mifal / "third_party/provenance.json").read_bytes()
+        self.publish("upstream notes", {"skills/engineering/foo/notes.md": "upstream replacement\n",
+                                        "skills/engineering/foo/SKILL.md": SKILL + "More.\n"})
+        result = self.tool("pull", "foo")
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("skills/foo/notes.md is a symlink", result.stderr)
+        self.assertEqual(foreign.read_text(), NOTES)
+        self.assertNotIn("More.", (self.mifal / "skills/foo/SKILL.md").read_text())
+        self.assertEqual((self.mifal / "third_party/provenance.json").read_bytes(), before)
+
+    def test_a_linked_skill_folder_is_refused(self):
+        elsewhere = self.root / "elsewhere-foo"
+        (self.mifal / "skills/foo").rename(elsewhere)
+        (self.mifal / "skills/foo").symlink_to(elsewhere)
+        self.publish("tighten step three", {
+            "skills/engineering/foo/SKILL.md": SKILL.replace("Step three.", "Step three, tightened.")})
+        result = self.tool("pull", "foo")
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertNotIn("tightened", (elsewhere / "SKILL.md").read_text())
+
+    def test_a_symlink_upstream_is_refused_before_any_write(self):
+        (self.work / "skills/engineering/foo/link.md").symlink_to("notes.md")
+        self.write_upstream({"skills/engineering/foo/SKILL.md": SKILL + "More.\n"})
+        self.commit("add a link")
+        self.git(self.work, "push", "-q", "origin", "main")
+        before = (self.mifal / "third_party/provenance.json").read_bytes()
+        result = self.tool("pull", "foo")
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+        self.assertIn("link.md is a symlink", result.stderr)
+        self.assertNotIn("More.", (self.mifal / "skills/foo/SKILL.md").read_text())
+        self.assertEqual((self.mifal / "third_party/provenance.json").read_bytes(), before)
+
+    def test_an_upstream_executable_arrives_executable(self):
+        upstream = self.work / "skills/engineering/foo/run.sh"
+        self.write(upstream, "#!/bin/sh\nexit 0\n")
+        upstream.chmod(0o755)
+        self.commit("executable helper")
+        self.git(self.work, "push", "-q", "origin", "main")
+        self.assertEqual(self.tool("pull", "foo").returncode, 0)
+        self.assertEqual(stat.S_IMODE((self.mifal / "skills/foo/run.sh").stat().st_mode), 0o755)
+
     def test_an_unknown_skill_is_refused(self):
         result = self.tool("pull", "nope")
         self.assertEqual(result.returncode, 2)
@@ -181,6 +228,14 @@ class Diff(Upstream):
         self.assertIn("-Step one.", result.stdout)
         self.assertIn("+Step one, as Mifal says it.", result.stdout)
         self.assertNotIn("notes.md", result.stdout)
+
+    def test_a_file_without_a_final_newline_gives_a_patch_git_applies(self):
+        path = self.mifal / "skills/foo/SKILL.md"
+        path.write_text(path.read_text().rstrip("\n"))
+        result = self.tool("diff", "foo")
+        check = subprocess.run(["git", "apply", "--check", "-"], cwd=self.work, env=self.env, input=result.stdout,
+                               text=True, capture_output=True)
+        self.assertEqual(check.returncode, 0, check.stderr + result.stdout)
 
 
 class RealProvenance(unittest.TestCase):

@@ -20,6 +20,7 @@ class Doctor(Sandbox):
         super().setUp()
         self.herdr_schema(SCHEMA.read_text())
         self.harness_fakes(*HARNESSES)
+        self.fake("agent-browser", "exit 0")
         self.install()
 
     def herdr_schema(self, text):
@@ -52,6 +53,8 @@ class Healthy(Doctor):
             self.assertRegex(result.stdout, rf"(?m)^PASS guide {name}\b")
         self.assertRegex(result.stdout, r"(?m)^PASS herdr: 0\.9\.5, server 0\.9\.5")
         self.assertRegex(result.stdout, r"(?m)^PASS herdr protocol: 22, the schema the team lead's adapter speaks")
+        self.assertRegex(result.stdout, r"(?m)^PASS agent-browser: ")
+        self.assertEqual([c for c in self.called() if c.startswith("agent-browser")], [])
 
     def test_green_after_the_clone_is_deleted(self):
         shutil.rmtree(self.clone)
@@ -88,10 +91,19 @@ class Broken(Doctor):
         self.assertEqual(self.failed(result), [], result.stdout)
         self.assertRegex(result.stdout, r"(?m)^WARN herdr protocol: 22, but its schema differs")
 
-    def test_a_herdr_that_prints_no_schema_warns(self):
-        self.herdr_schema("")
+    def test_a_missing_agent_browser_cli_warns_with_its_install_command(self):
+        self.unfake("agent-browser")
         result = self.doctor()
-        self.assertRegex(result.stdout, r"(?m)^WARN herdr protocol: ")
+        self.assertEqual(self.failed(result), [], result.stdout)
+        self.assertRegex(result.stdout, r"(?m)^WARN agent-browser: .*not on PATH")
+        self.assertIn("npm i -g agent-browser && agent-browser install", result.stdout)
+
+    def test_a_herdr_that_prints_no_schema_warns(self):
+        for printed in ("", "[22]", "null"):
+            with self.subTest(printed=printed):
+                self.herdr_schema(printed)
+                result = self.doctor()
+                self.assertRegex(result.stdout, r"(?m)^WARN herdr protocol: could not compare")
 
     def test_a_changed_ask_matt_body_fails_with_its_fix(self):
         body = self.home / ".agents/skills/ask-matt/SKILL.md"

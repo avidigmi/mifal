@@ -12,7 +12,7 @@ python3 maint/upstream.py pull tdd grill-me
 python3 maint/upstream.py diff tdd        # Mifal's own changes to tdd, against the upstream it came from
 ```
 
-`pull` merges each file three ways: the recorded upstream commit is the base, `skills/NAME` is Mifal's side, the upstream head is theirs. A file only upstream changed takes upstream's version; a file only Mifal changed stays; a file both changed is merged by `git merge-file`, and overlapping edits are left as conflict markers, listed, with exit 1. Upstream additions and deletions apply where Mifal did not touch the file; a file deleted on one side and changed on the other is kept as it is in Mifal and listed. `pull` then rewrites the skill's commit, tree and changed-file list. It never commits.
+`pull` merges each file three ways: the recorded upstream commit is the base, `skills/NAME` is Mifal's side, the upstream head is theirs. A file only upstream changed takes upstream's version; a file only Mifal changed stays; a file both changed is merged by `git merge-file`, and overlapping edits are left as conflict markers, listed, with exit 1. Upstream additions and deletions apply where Mifal did not touch the file; a file deleted on one side and changed on the other is kept as it is in Mifal and listed. `pull` then rewrites the skill's commit, tree and changed-file list. It never commits. It copies regular files only, with upstream's executable bit: a symlink in `skills/NAME` or among upstream's files stops it before it writes anything, and that skill is taken by hand.
 
 After a pull:
 

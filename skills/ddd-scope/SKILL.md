@@ -13,7 +13,8 @@ metadata:
 
 # Discover the documentation
 
-Read [DDD](../ddd/SKILL.md) and apply **Inspect the task and its surroundings**,
+Load the `ddd` skill completely, through your native skill tool when you have one, otherwise by reading
+[DDD](../ddd/SKILL.md), and apply **Inspect the task and its surroundings**,
 **Research the questions that matter**, and the persistent-note rules in step 3.
 That skill owns the procedure.
 

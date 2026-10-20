@@ -112,17 +112,34 @@ class Loading(unittest.TestCase):
         self.assertIn("native skill tool", text)
         self.assertNotIn("read `~/.agents/skills/engineering-workflow/SKILL.md` completely", text)
 
+    def test_the_guide_keeps_secrets_out_of_the_transcript(self):
+        self.assertIn("Keep secrets out of the transcript", (REPO / "guide/AGENTS.md").read_text(encoding="utf-8"))
+
     def test_the_engineering_workflow_loads_ask_matt_and_team_lead_natively_first(self):
         text = (REPO / "skills/engineering-workflow/SKILL.md").read_text(encoding="utf-8")
         self.assertIn("Load the `ask-matt` skill completely, as step 4 loads a skill", text)
         self.assertIn("load the `team-lead` skill completely the same way", text)
         self.assertIn("Prefer the native skill tool", text)
+        self.assertIn("load `ddd` and the relevant phase procedure as step 4 loads a skill", text)
+        self.assertIn("Load `setup-matt-pocock-skills` when needed", text)
+
+    def test_the_ddd_phase_skills_load_ddd_natively_first(self):
+        for name in ("ddd-scope", "ddd-ground", "ddd-verify"):
+            with self.subTest(skill=name):
+                text = " ".join((REPO / "skills" / name / "SKILL.md").read_text(encoding="utf-8").split())
+                self.assertIn("Load the `ddd` skill completely, through your native skill tool", text)
 
     def test_team_leads_hard_lines_survive_a_truncated_reattach(self):
         text = (REPO / "skills/team-lead/SKILL.md").read_text(encoding="utf-8")
         start = text.index("\n## Hard lines\n")
         end = text.find("\n## ", start + 1)
         self.assertLess(end if end > 0 else len(text), 8000)
+        head = " ".join(text[start:end].split())
+        for rule in ("After a compaction, reload team-lead", "--gate entry|review|accept", "brief <brief> --matt",
+                     "Pane checks before every prompt", "references/herdr.md", "Review only settled work",
+                     "One writer per shared artifact"):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, head)
 
 
 class Closure(unittest.TestCase):
