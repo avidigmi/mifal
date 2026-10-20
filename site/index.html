@@ -3,206 +3,173 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mifal: one engineering workflow for your coding agents</title>
-<meta name="description" content="Mifal installs one engineering workflow into Claude Code, Codex, Droid, Pi and OpenCode, with a validator that refuses a brief, receipt or phase record that lacks its evidence. Alpha, macOS, MIT.">
-<meta property="og:title" content="Mifal">
-<meta property="og:description" content="Agents say done. Mifal asks for the evidence. One engineering workflow for five coding agents, and a validator, run at each gate, that refuses a record without its evidence.">
+<title>Mifal: your agents, run like a factory</title>
+<meta name="description" content="Mifal gives your coding agents a team lead. Set a goal; the lead briefs the Claude Code, Codex, Droid, Pi and OpenCode agents you open in Herdr panes, checks every return and runs the line until the work is reviewed. Alpha, macOS, MIT.">
+<meta property="og:title" content="Mifal: your agents, run like a factory">
+<meta property="og:description" content="A team lead for your coding agents. Set a goal; the lead briefs, checks every return and runs the line until the work is reviewed.">
 <meta property="og:image" content="https://romiluz13.github.io/mifal/media/og.jpg">
 <meta property="og:url" content="https://romiluz13.github.io/mifal/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#EEE5D2">
+<meta name="theme-color" content="#1C2522">
 <link rel="icon" href="media/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@800&text=%D7%9E%D7%A4%D7%A2%D7%9C&display=swap" rel="stylesheet">
 <style>
 :root {
-  --paper: #EEE5D2;
-  --paper-deep: #E4D8BF;
-  --ink: #1F2A55;
-  --ink-soft: #4F5A7C;
-  --rule: #C7BB9F;
-  --red: #C2362B;
-  --green: #2E7A4C;
-  --term: #171A21;
-  --term-ink: #DCDFE6;
-  --term-dim: #8C93A6;
-  --wide: 1180px;
+  --bg: #1C2522;
+  --panel: #222E2A;
+  --well: #131B18;
+  --line: #3A4A43;
+  --ink: #EDF1EE;
+  --muted: #A2B0A9;
+  --yellow: #F2C230;
+  --red: #E5432F;
+  --green: #43C28A;
   --gutter: clamp(16px, 4vw, 48px);
-  color-scheme: light;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+html { -webkit-text-size-adjust: 100%; }
 body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: Archivo, "Heebo", system-ui, sans-serif;
-  font-variation-settings: "wdth" 100;
-  font-size: 1.0625rem;
-  line-height: 1.55;
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 1.0625rem; line-height: 1.6;
 }
-a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-a:hover { text-decoration-thickness: 2px; }
-:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
-code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
-code { font-size: .92em; }
-.wrap { max-width: var(--wide); margin: 0 auto; padding: 0 var(--gutter); }
-.skip { position: absolute; left: -999px; top: 8px; background: var(--ink); color: var(--paper); padding: 8px 12px; z-index: 10; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+code, pre { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--yellow); color: #17201D; padding: 8px 12px; z-index: 20; }
 .skip:focus { left: 8px; }
+.display { font-family: "Big Shoulders Display", Impact, sans-serif; font-weight: 800; }
 
-/* Masthead */
-.mast { position: absolute; inset: 0 0 auto 0; z-index: 3; }
-.mast .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding-top: 22px; }
-.mark { font-weight: 850; font-variation-settings: "wdth" 70; font-size: 1.6rem; letter-spacing: .01em; text-decoration: none; display: inline-flex; align-items: baseline; gap: .45em; }
-.mark .he { font-family: "Heebo", sans-serif; font-size: .8em; color: var(--red); }
-.mast nav { display: flex; gap: clamp(14px, 3vw, 32px); font-size: .98rem; }
-.mast nav a { text-decoration: none; }
-.mast nav a:hover { text-decoration: underline; }
+.mast { position: fixed; inset: 0 0 auto 0; z-index: 10; background: linear-gradient(var(--bg) 45%, rgba(28,37,34,0)); }
+.mast .in { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px var(--gutter) 20px; }
+.mark { display: inline-flex; align-items: baseline; gap: .45em; text-decoration: none; font-size: 1.8rem; line-height: 1; }
+.mark .he { font-family: "Heebo", sans-serif; font-size: .68em; color: var(--yellow); }
+.mast nav { display: flex; gap: clamp(14px, 3vw, 30px); font-size: .95rem; }
+.mast nav a { text-decoration: none; color: var(--muted); }
+.mast nav a:hover { color: var(--ink); }
 
-/* Hero */
-.hero { position: relative; min-height: min(100svh, 900px); display: grid; align-items: center; overflow: hidden; isolation: isolate; }
-.hero video, .hero .poster { position: absolute; top: 0; left: -14%; width: 114%; height: 100%; object-fit: cover; object-position: 20% 50%; z-index: -2; }
-.hero::before {
-  content: ""; position: absolute; inset: 0; z-index: -1;
-  background:
-    linear-gradient(162deg, var(--paper) 0%, rgba(238,229,210,.92) 20%, rgba(238,229,210,0) 44%),
-    linear-gradient(90deg, rgba(238,229,210,0) 36%, rgba(238,229,210,.82) 50%, var(--paper) 64%);
-}
-.hero .wrap { width: 100%; display: grid; grid-template-columns: repeat(12, 1fr); padding-top: 110px; padding-bottom: 64px; }
-.hero-copy { grid-column: 7 / 13; }
-h1 {
-  margin: 0 0 22px;
-  font-weight: 850; font-variation-settings: "wdth" 68;
-  font-size: clamp(2.9rem, 6.4vw, 5.9rem); line-height: .93; letter-spacing: -.005em;
-  text-wrap: balance;
-}
-.lede { font-size: clamp(1.08rem, 1.5vw, 1.26rem); max-width: 34em; margin: 0 0 28px; color: var(--ink); }
-.install { border: 1.5px solid var(--ink); background: rgba(238,229,210,.9); max-width: 36rem; }
-.install pre { margin: 0; padding: 14px 16px 12px; font-size: .9rem; line-height: 1.7; overflow-x: auto; }
-.install pre .p { color: var(--ink-soft); user-select: none; }
-.install-bar { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--rule); padding: 8px 8px 8px 16px; font-size: .9rem; color: var(--ink-soft); gap: 12px; }
-button, .btn {
-  font: inherit; font-weight: 650; color: var(--paper); background: var(--ink); border: 0; padding: 8px 14px; cursor: pointer; text-decoration: none; display: inline-block;
-}
-button:hover, .btn:hover { background: #2C3A70; }
-.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
-.btn.ghost:hover { background: rgba(31,42,85,.07); }
-.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 22px; }
-.status { font-size: .95rem; color: var(--ink-soft); margin-top: 16px; }
-.status strong { color: var(--red); font-weight: 750; }
+.floor { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+.copy { grid-column: 1; grid-row: 1; padding: 0 var(--gutter); }
+.stage-col { grid-column: 2; grid-row: 1; }
+.stage { position: sticky; top: 0; height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 64px 12px 16px 0; }
+#scene { width: 100%; height: auto; max-height: calc(100svh - 120px); display: block; }
+.stage-note { font-size: .9rem; color: var(--muted); text-align: center; min-height: 1.5em; margin: 8px 0 0; }
 
-/* Sections */
-section { padding: clamp(72px, 10vw, 128px) 0; }
-section.deep { background: var(--paper-deep); }
-h2 {
-  margin: 0 0 18px; font-weight: 820; font-variation-settings: "wdth" 72;
-  font-size: clamp(2.1rem, 4.2vw, 3.5rem); line-height: 1; letter-spacing: -.003em; text-wrap: balance;
-}
-h3 { margin: 0 0 6px; font-weight: 750; font-size: 1.12rem; line-height: 1.3; }
-.intro { max-width: 40em; font-size: 1.12rem; margin: 0 0 40px; }
-.two { display: grid; grid-template-columns: 5fr 7fr; gap: clamp(28px, 5vw, 72px); align-items: start; }
-.two > *, .replay > *, .checks > * { min-width: 0; }
+.hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: 96px 0 48px; }
+h1 { font-size: clamp(3.6rem, 7.4vw, 7.4rem); line-height: .85; margin: 0 0 26px; font-weight: 900; }
+h1 .l { display: block; }
+.lede { font-size: clamp(1.06rem, 1.3vw, 1.2rem); max-width: 31em; margin: 0 0 28px; }
+.goal { display: flex; border: 2px solid var(--yellow); max-width: 34rem; background: var(--panel); }
+.goal label { position: absolute; left: -999px; }
+.goal input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--ink); font: 500 1rem "IBM Plex Mono", monospace; padding: 14px; }
+.goal input::placeholder { color: #7F8E87; }
+.goal input:focus { outline: none; }
+.goal:focus-within { box-shadow: 0 0 0 3px rgba(242,194,48,.35); }
+button { font: 600 1rem "IBM Plex Sans", sans-serif; cursor: pointer; border: 0; }
+.goal button { background: var(--yellow); color: #17201D; padding: 0 18px; white-space: nowrap; }
+.goal button:hover { background: #FFD24A; }
+.after-goal { font-size: .92rem; color: var(--muted); margin: 12px 0 0; max-width: 34rem; }
+.install-line { margin: 30px 0 0; font-size: .92rem; color: var(--muted); }
+.install-line code { color: var(--ink); background: var(--panel); padding: 3px 7px; overflow-wrap: anywhere; }
+.scroll-cue { margin: 44px 0 0; font-size: .92rem; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.scroll-cue::before { content: ""; width: 28px; height: 2px; background: var(--yellow); }
 
-/* Replay */
-.replay { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; align-items: start; }
-.scroller { overflow-x: auto; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }
-#timeline { display: block; width: 100%; min-width: 760px; height: auto; }
-#timeline .lane-name { font-weight: 750; font-size: 19px; fill: var(--ink); }
-#timeline .lane-who { font-size: 14px; fill: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
-#timeline .ev { cursor: pointer; outline: none; }
-#timeline .ev:focus-visible .hit { stroke: var(--ink); stroke-width: 2; }
-#timeline .ev.sel .hit { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 3; }
-#timeline .hit { fill: transparent; }
-.controls { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
-.controls input[type=range] { flex: 1; accent-color: var(--ink); }
-.controls .clock { font-family: "IBM Plex Mono", monospace; font-size: .85rem; color: var(--ink-soft); min-width: 13ch; text-align: right; }
-.tally { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; font-size: 1rem; }
-.tally b { font-weight: 820; font-variation-settings: "wdth" 72; font-size: 1.5rem; margin-right: 6px; }
-.tally .open b { color: var(--red); }
-.card {
-  border: 1.5px solid var(--ink); background: var(--paper); padding: 18px 18px 16px; position: sticky; top: 24px; min-height: 260px;
-}
-.card .kind { font-weight: 820; font-variation-settings: "wdth" 72; font-size: 1.6rem; line-height: 1.05; margin: 0 0 10px; }
-.card .kind.hold { color: var(--red); }
-.card .kind.clear { color: var(--green); }
-.card p { margin: 0 0 12px; }
-.card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--rule); font-size: .9rem; }
-.card dt { color: var(--ink-soft); }
-.card dd { margin: 0; overflow-wrap: anywhere; }
-.hint { font-size: .9rem; color: var(--ink-soft); margin-top: 10px; }
+.beat { min-height: 92svh; display: flex; flex-direction: column; justify-content: center; padding: 48px 0; }
+.beat h2 { font-size: clamp(2.4rem, 4.2vw, 3.8rem); line-height: .92; margin: 0 0 16px; }
+.beat p { margin: 0 0 14px; max-width: 32em; }
+.beat .when { font: 500 .85rem "IBM Plex Mono", monospace; color: var(--yellow); margin-bottom: 10px; }
+.msg { background: var(--well); border-left: 3px solid var(--line); padding: 12px 14px 12px 16px; margin: 6px 0 16px; max-width: 34rem; }
+.msg .hdr { font: 500 .8rem "IBM Plex Mono", monospace; color: var(--muted); margin-bottom: 6px; }
+.msg .body { font: 400 .92rem/1.55 "IBM Plex Mono", monospace; white-space: pre-wrap; }
+.msg.hold { border-left-color: var(--red); }
+.msg.hold b { color: var(--red); }
+.msg.ok { border-left-color: var(--green); }
+.msg.lead { border-left-color: var(--yellow); }
+.parts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; padding: 0; list-style: none; max-width: 34rem; }
+.parts li { font: 500 .82rem "IBM Plex Mono", monospace; border: 1px solid var(--line); padding: 3px 8px; }
+.parts li.req { border-color: var(--yellow); }
+.roster { width: 100%; max-width: 34rem; border-collapse: collapse; font-size: .94rem; margin: 4px 0 14px; }
+.roster td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.roster td:first-child { font-family: "IBM Plex Mono", monospace; font-size: .86rem; white-space: nowrap; }
+.roster td.dim { color: var(--muted); }
 
-/* Terminal */
-.term { background: var(--term); color: var(--term-ink); border-radius: 4px; overflow: hidden; }
-.term-top { display: flex; gap: 6px; padding: 10px 12px; background: #20242D; }
-.term-top i { width: 10px; height: 10px; border-radius: 50%; background: #3A404D; display: block; }
-.term pre { margin: 0; padding: 16px 18px 18px; font-size: .84rem; line-height: 1.6; overflow-x: auto; white-space: pre; }
-.term .cmd { color: #FFFFFF; }
-.term .dim { color: var(--term-dim); }
-.term .err { color: #FF8F84; }
+section.wide { padding: clamp(80px, 11vw, 140px) var(--gutter); border-top: 1px solid var(--line); }
+.wide .in { max-width: 1180px; margin: 0 auto; }
+.wide h2 { font-size: clamp(2.7rem, 5.2vw, 4.6rem); line-height: .9; margin: 0 0 18px; }
+.wide .intro { max-width: 40em; margin: 0 0 40px; font-size: 1.1rem; }
+.manual { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 3px solid var(--yellow); counter-reset: m; }
+.manual li { counter-increment: m; padding: 18px 18px 22px; border-bottom: 1px solid var(--line); }
+.manual li:nth-child(5n+1) { padding-left: 0; }
+.manual li:not(:nth-child(5n+1)) { border-left: 1px solid var(--line); }
+.manual li::before { content: "M" counter(m); display: block; font: 500 .82rem "IBM Plex Mono", monospace; color: var(--yellow); margin-bottom: 8px; }
+.manual h3 { font: 600 1.05rem/1.25 "IBM Plex Sans", sans-serif; margin: 0 0 6px; }
+.manual p { margin: 0; font-size: .93rem; color: var(--muted); }
+.agents { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 0 0 28px; }
+.agent { border-top: 3px solid var(--line); padding: 14px 0 0; }
+.agent b { display: block; font-family: "Big Shoulders Display", sans-serif; font-weight: 800; font-size: 1.8rem; line-height: 1; margin-bottom: 8px; }
+.agent code { font-size: .82rem; color: var(--muted); overflow-wrap: anywhere; }
+.two > * { min-width: 0; }
+.two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
+.cmd { background: var(--well); border: 1px solid var(--line); }
+.cmd pre { margin: 0; padding: 16px 18px; font-size: .9rem; line-height: 1.75; overflow-x: auto; }
+.cmd pre .p { color: var(--muted); user-select: none; }
+.cmd .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding: 8px 8px 8px 18px; font-size: .88rem; color: var(--muted); }
+.cmd .bar button { background: var(--yellow); color: #17201D; padding: 7px 14px; }
+.term { margin-top: 18px; border: 1px solid var(--line); background: var(--well); }
 .term video { display: block; width: 100%; height: auto; }
+.facts { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.facts li { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: .97rem; }
+.facts b { color: var(--yellow); font-weight: 600; }
+.links { display: flex; flex-wrap: wrap; gap: 10px 24px; margin-top: 22px; }
+footer { padding: 48px var(--gutter) 64px; border-top: 1px solid var(--line); color: var(--muted); font-size: .93rem; }
+footer .in { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr; gap: 32px; }
+footer p { margin: 0 0 10px; max-width: 50em; }
+footer .he { font-family: "Heebo", sans-serif; color: var(--yellow); }
 
-/* Route */
-.route { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); counter-reset: step; border-top: 1.5px solid var(--ink); }
-.route li { counter-increment: step; padding: 16px 16px 4px 0; position: relative; }
-.route li + li { padding-left: 16px; border-left: 1px solid var(--rule); }
-.route li::before { content: counter(step); display: block; font-weight: 820; font-variation-settings: "wdth" 72; font-size: 2.2rem; line-height: 1; margin-bottom: 10px; color: var(--ink-soft); }
-.route p { margin: 0; font-size: .95rem; }
-.route-note { margin-top: 28px; max-width: 46em; }
-.gate-note { display: inline-flex; gap: 10px; align-items: baseline; }
-.gate-note::before { content: ""; width: 10px; height: 10px; background: var(--red); transform: rotate(45deg); flex: none; position: relative; top: -1px; }
+#scene text { font-family: "IBM Plex Mono", monospace; }
+#scene .tag { font-size: 14px; fill: var(--ink); font-weight: 500; }
+#scene .tag2 { font-size: 12px; fill: var(--muted); }
+#scene .state { font-size: 12px; font-weight: 500; }
+#scene .sign { font-family: "Big Shoulders Display", sans-serif; font-weight: 800; }
 
-/* Lists */
-.checks { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 64px); }
-.checks ul { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
-.checks li { padding: 14px 0 14px 34px; border-bottom: 1px solid var(--rule); position: relative; }
-.checks .prog li::before { content: ""; position: absolute; left: 4px; top: 19px; width: 14px; height: 8px; border-left: 2.5px solid var(--green); border-bottom: 2.5px solid var(--green); transform: rotate(-45deg); }
-.checks .agent li::before { content: ""; position: absolute; left: 4px; top: 21px; width: 16px; height: 0; border-top: 2.5px dashed var(--ink-soft); }
-.checks h3 { margin-bottom: 14px; }
-
-table.matrix { border-collapse: collapse; width: 100%; font-size: .95rem; margin-top: 8px; }
-.matrix th, .matrix td { text-align: left; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
-.matrix th { font-weight: 750; border-bottom: 1.5px solid var(--ink); }
-.matrix td.u { color: var(--ink-soft); }
-.scroll-x { overflow-x: auto; }
-
-footer { padding: 56px 0 72px; border-top: 1.5px solid var(--ink); font-size: .95rem; }
-footer .cols { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; }
-footer p { margin: 0 0 10px; max-width: 48em; }
-footer .he { font-family: "Heebo", sans-serif; color: var(--red); }
-
-@media (max-width: 980px) {
-  .replay { grid-template-columns: 1fr; }
-  .card { position: static; min-height: 0; }
-  .route { grid-template-columns: repeat(4, 1fr); row-gap: 8px; }
-  .route li:nth-child(5) { border-left: 0; padding-left: 0; }
+@media (max-width: 1100px) {
+  .manual { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .manual li { padding-left: 0 !important; border-left: 0 !important; }
+  .agents { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (max-width: 760px) {
+@media (max-width: 860px) {
+  .floor { display: block; }
+  .stage-col { position: sticky; top: 0; z-index: 3; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .stage { position: relative; height: auto; padding: 58px 0 6px; }
+  #scene { max-height: 38svh; }
+  .stage-note { font-size: .82rem; padding: 0 var(--gutter); }
+  .hero { min-height: 0; padding: 26px 0 40px; }
+  .beat { min-height: 72svh; padding: 28px 0; }
+  .two, footer .in { grid-template-columns: 1fr; }
+  .agents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mast { background: var(--bg); }
   .mast nav a.opt { display: none; }
-  .hero { min-height: 0; display: block; }
-  .hero video, .hero .poster { position: relative; left: 0; width: 100%; height: auto; aspect-ratio: 16 / 10; object-position: 30% 50%; }
-  .hero::before { inset: 0 0 auto 0; height: 0; padding-top: 62.5%; background: linear-gradient(170deg, var(--paper) 0%, rgba(238,229,210,0) 38%), linear-gradient(0deg, var(--paper) 0%, rgba(238,229,210,0) 28%); }
-  .hero .wrap { display: block; padding-top: 8px; padding-bottom: 56px; }
-  .mast .wrap { padding-top: 14px; }
-  .two, .checks, footer .cols { grid-template-columns: 1fr; }
-  .route { grid-template-columns: 1fr; }
-  .route li, .route li + li { border-left: 0; padding-left: 0; border-bottom: 1px solid var(--rule); padding-bottom: 14px; display: grid; grid-template-columns: 52px 1fr; column-gap: 8px; }
-  .route li::before { grid-row: span 2; margin: 0; }
+  .scroll-cue { display: none; }
+}
+@media (max-width: 520px) {
+  .manual { grid-template-columns: 1fr; }
+  .goal { flex-direction: column; }
+  .goal button { padding: 12px; }
 }
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-
 <header class="mast">
-  <div class="wrap">
-    <a class="mark" href="./" aria-label="Mifal home">Mifal <span class="he" lang="he" aria-hidden="true">מפעל</span></a>
+  <div class="in">
+    <a class="mark display" href="./" aria-label="Mifal home">Mifal <span class="he" lang="he" aria-hidden="true">מפעל</span></a>
     <nav aria-label="Main">
-      <a class="opt" href="#built">The build</a>
-      <a class="opt" href="#route">How it works</a>
+      <a class="opt" href="#shift">A real shift</a>
+      <a class="opt" href="#manual">The lead</a>
       <a href="#install">Install</a>
       <a href="https://github.com/romiluz13/mifal">GitHub</a>
     </nav>
@@ -210,396 +177,478 @@ footer .he { font-family: "Heebo", sans-serif; color: var(--red); }
 </header>
 
 <main id="main">
-<div class="hero">
-  <video autoplay muted loop playsinline preload="auto" poster="media/hero-poster.jpg" aria-hidden="true">
-    <source src="media/hero.webm" type="video/webm">
-    <source src="media/hero.mp4" type="video/mp4">
-  </video>
-  <div class="wrap">
-    <div class="hero-copy">
-      <h1>Agents say done. Mifal asks for the evidence.</h1>
-      <p class="lede">One engineering workflow for Claude Code, Codex, Droid, Pi and OpenCode, with a validator that refuses a brief, a receipt or a phase record that lacks its evidence.</p>
-      <div class="install" id="install-box">
-<pre id="install-cmd"><span class="p">$ </span>git clone https://github.com/romiluz13/mifal.git
-<span class="p">$ </span>cd mifal &amp;&amp; ./install.sh --dry-run
-<span class="p">$ </span>./install.sh &amp;&amp; mifal doctor</pre>
-        <div class="install-bar"><span>The dry run lists every write and changes nothing.</span><button type="button" id="copy">Copy</button></div>
-      </div>
-      <div class="cta">
-        <a class="btn ghost" href="https://github.com/romiluz13/mifal">Read the code on GitHub</a>
-        <a class="btn ghost" href="https://github.com/romiluz13/mifal/blob/main/docs/INSTALL.md">Install guide</a>
-      </div>
-      <p class="status"><strong>Alpha.</strong> macOS only, Python 3.9 or later, MIT licence.</p>
+<div class="floor">
+  <div class="stage-col">
+    <div class="stage">
+      <svg id="scene" role="img" aria-labelledby="scene-t" viewBox="40 40 990 690"><title id="scene-t">A factory floor: the team lead's glass office, five agent booths wired to it, and a conveyor that carries work from the goal intake past a review gate to the shipping dock.</title></svg>
+      <p class="stage-note" id="note" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div class="copy">
+    <section class="hero" aria-labelledby="h1">
+      <h1 id="h1" class="display"><span class="l">Your agents,</span><span class="l">run like</span><span class="l">a factory.</span></h1>
+      <p class="lede">Mifal gives your coding agents a team lead. You set the goal and answer the questions only you can settle. The lead briefs the Claude Code, Codex, Droid, Pi and OpenCode agents you open in Herdr panes, checks every return, and runs the line until the work is reviewed.</p>
+      <form class="goal" id="goal-form">
+        <label for="goal">A goal for the team</label>
+        <input id="goal" name="goal" maxlength="64" autocomplete="off" placeholder="Add passkey login to my app">
+        <button type="submit">Start a shift</button>
+      </form>
+      <p class="after-goal">The floor plays an illustration of a shift for your goal. Scroll down for a real one: the shift that built Mifal.</p>
+      <p class="install-line">Install: <code>git clone https://github.com/romiluz13/mifal.git &amp;&amp; cd mifal &amp;&amp; ./install.sh</code></p>
+      <p class="scroll-cue">One real shift, replayed from its build record</p>
+    </section>
+
+    <div id="shift">
+    <article class="beat" data-beat="goal">
+      <p class="when">19 Oct 2026</p>
+      <h2 class="display">A goal goes in.</h2>
+      <div class="msg"><div class="hdr">the human → opus-cto, the lead</div><div class="body">Ship Mifal as a product. A stranger on macOS installs it with one command and gets the methodology, the team lead, the validator and Herdr wired into Claude Code, Codex, Droid, Pi and OpenCode. Nothing personal ships.</div></div>
+      <p>The lead turns the goal into named claims that pass or fail. This shift had eleven, from "uninstall restores every file byte for byte" to "the reviewer's last review has no open blocking finding".</p>
+    </article>
+
+    <article class="beat" data-beat="staff">
+      <h2 class="display">The lead staffs the floor.</h2>
+      <p>It works with the agents you open in Herdr panes, and gives each one the work it has shown it does well.</p>
+      <table class="roster">
+        <tr><td>opus-cto</td><td>Claude Code. The lead, and the builder.</td></tr>
+        <tr><td>haiku-researcher</td><td>Claude Code. Research, and grilling the plan.</td></tr>
+        <tr><td>sol-reviewer</td><td>Codex. Every review.</td></tr>
+        <tr><td>mifal-reviewer</td><td>Claude Code. An outside critic, later in the shift.</td></tr>
+        <tr><td class="dim">open booths</td><td class="dim">Droid, Pi and OpenCode get the same Guide and skills, ready to staff.</td></tr>
+      </table>
+    </article>
+
+    <article class="beat" data-beat="brief">
+      <p class="when">Task 1</p>
+      <h2 class="display">Every agent gets a brief.</h2>
+      <div class="msg lead"><div class="hdr">opus-cto → haiku-researcher</div><div class="body">Now I need you to break my plan before I build it, because a wrong design costs minutes here and days in the code.</div></div>
+      <p>A brief says why the work matters, what done means, what the agent may decide alone and when to stop. Before it goes out, the validator checks it, and refuses one without its why, outcome, done means or stop rule.</p>
+      <ul class="parts" aria-label="Parts of a brief; the validator requires the outlined four"><li class="req">Why</li><li class="req">Outcome</li><li>Latitude</li><li>Pointers</li><li>Least sure of</li><li class="req">Done means</li><li class="req">Stop rule</li><li>Return</li></ul>
+    </article>
+
+    <article class="beat" data-beat="doorbell">
+      <h2 class="display">Agents ring the doorbell.</h2>
+      <div class="msg"><div class="hdr">haiku-researcher → opus-cto</div><div class="body">DONE 1 .team/tasks/1.md</div></div>
+      <div class="msg ok"><div class="hdr">opus-cto, in the team record</div><div class="body">Accepted. Three rounds that settled facts from the installed binaries and tarballs, not memory.</div></div>
+      <p>A finished agent writes its return to a file and rings the lead's pane. A "done" alone is not enough: the lead reads the receipt, checks the claim that matters, and records what was good, specifically.</p>
+    </article>
+
+    <article class="beat" data-beat="hold">
+      <p class="when">19 Oct, 12:38 UTC</p>
+      <h2 class="display">Any reviewer can stop the line.</h2>
+      <div class="msg hold"><div class="hdr">sol-reviewer → opus-cto, review of the plan</div><div class="body"><b>HOLD</b>: seven blocking findings.
+F2  no recovery for an interrupted install
+F5  Herdr's script writes outside the Manifest,
+    found by reading install.sh without running it</div></div>
+      <div class="msg lead"><div class="hdr">opus-cto</div><div class="body">All seven accepted. The plan is amended, and the grilling reopens.</div></div>
+      <p>The plan was the cheapest place to be wrong. No code existed yet.</p>
+    </article>
+
+    <article class="beat" data-beat="fix">
+      <p class="when">19 Oct, 19:02 UTC</p>
+      <h2 class="display">Fix it, then prove it.</h2>
+      <div class="msg hold"><div class="hdr">sol-reviewer → opus-cto, review of the build</div><div class="body"><b>HOLD</b>: eight installer defects, among them an edit lost while an update waited for approval.</div></div>
+      <div class="msg lead"><div class="hdr">opus-cto</div><div class="body">Each of your 12 probes is now a test: all red before the fix, all green after.</div></div>
+      <p>A correction goes out as a new attempt with its own id, so a late "done" for the old one cannot close it. The recheck found one more problem; it was fixed, and the third look cleared the line.</p>
+    </article>
+
+    <article class="beat" data-beat="miss">
+      <p class="when">20 Oct, 03:01 Israel time</p>
+      <h2 class="display">Bad news, early.</h2>
+      <div class="msg lead"><div class="hdr">opus-cto → sol-reviewer, task 4.4</div><div class="body">Since your 4.3 acceptance, I built 0.1.1 without a review, and pushed part of it to the private repo. That was my miss.</div></div>
+      <div class="msg hold"><div class="hdr">sol-reviewer → opus-cto</div><div class="body"><b>HOLD</b>: a maintainer command can follow a symlink and overwrite a file outside the repo.</div></div>
+      <p>The lead owns its misses out loud and sends its own work to review. The fix landed fifteen minutes later, and the recheck cleared it.</p>
+    </article>
+
+    <article class="beat" data-beat="ship">
+      <h2 class="display">The line ships.</h2>
+      <p>Five times in this shift the reviewer said HOLD, with 21 blocking findings across those rounds. Every one was closed before the public release.</p>
+      <div class="msg ok"><div class="hdr">sol-reviewer, recheck 4.5</div><div class="body">F1 closed. No new blocking problem.</div></div>
+    </article>
+
+    <article class="beat" data-beat="retro">
+      <h2 class="display">Every rule has a scar.</h2>
+      <p>Retros change the lead itself. A rule that came from a failure carries the failure in a comment, so the next editor knows why it exists. Two from the team lead skill:</p>
+      <div class="msg"><div class="hdr">scar, ticket 7</div><div class="body">A brief that asked for a push was obeyed over the reservation, which was written somewhere the worker did not read.</div></div>
+      <div class="msg"><div class="hdr">scar, ticket 5</div><div class="body">Retros that named no asset changed nothing, and blaming the model hid the brief.</div></div>
+    </article>
     </div>
   </div>
 </div>
 
-<section class="deep" id="built" aria-labelledby="built-h">
-  <div class="wrap">
-    <h2 id="built-h">It was built by its own team.</h2>
-    <p class="intro">A Claude lead, a Codex reviewer, a Claude researcher and an outside critic built Mifal 0.1 over 19 hours. The reviewer said HOLD five times, with 21 blocking findings across those rounds, and all were closed before this public release. Every mark below is an event from the build log. Select one to read it.</p>
-    <div class="replay">
-      <div>
-        <div class="scroller"><svg id="timeline" role="group" aria-label="Build timeline, 19 to 20 October 2026"></svg></div>
-        <div class="controls">
-          <button type="button" id="play">Replay</button>
-          <input type="range" id="scrub" min="0" max="1000" value="1000" aria-label="Move through the build">
-          <span class="clock" id="clock" aria-live="off"></span>
-        </div>
-        <div class="tally" aria-live="polite">
-          <span><b id="t-found">21</b>blocking findings</span>
-          <span><b id="t-rounds">7</b>review rounds</span>
-          <span class="open"><b id="t-open">0</b>open at release</span>
-        </div>
-      </div>
-      <aside class="card" id="card" aria-live="polite"></aside>
-    </div>
-  </div>
-</section>
-
-<section id="gate" aria-labelledby="gate-h">
-  <div class="wrap two">
-    <div>
-      <h2 id="gate-h">A gate that says no.</h2>
-      <p><code>validate_contracts.py</code> checks a brief before it is sent, a receipt before it is accepted, and a phase record before the next phase starts. A record missing its evidence is refused, and the refusal names the fix.</p>
-      <p>The Guide tells every agent to run it at each gate. Whether it does is up to the agent. On a team, the team lead skill has the lead run it on every return before accepting the work.</p>
-    </div>
-    <div class="term" role="img" aria-label="Terminal: the validator refuses a brief that has no Done means section and no Workflow section">
-      <div class="term-top"><i></i><i></i><i></i></div>
-<pre><span class="cmd">$ python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py \
-    brief .team/tasks/7.md --matt</span>
-<span class="err">error:</span> .team/tasks/7.md: missing section '## Done means'; the
-  brief contract requires: Why, Outcome, Done means, Stop rule
-<span class="err">error:</span> .team/tasks/7.md: missing '## Workflow' for the Matt check;
-  add one before '## Return', e.g.:
-  <span class="dim">## Workflow
-  Methodology: matt
-  Executor: kai
-  Route: build
-  Phase: implement
-  Next gate: the slice's tests pass
-  ...</span>
-<span class="dim">$ echo $?</span>
-1</pre>
-    </div>
-  </div>
-</section>
-
-<section class="deep" id="route" aria-labelledby="route-h">
-  <div class="wrap">
-    <h2 id="route-h">One route, in order.</h2>
-    <p class="intro">Each agent's rules file gets the same Guide. It loads Matt Pocock's engineering workflow before any engineering request. A build that spans several sessions runs through these phases, with a gate between each.</p>
-    <ol class="route">
-      <li><h3>Scope</h3><p>Name the work and pick its route.</p></li>
-      <li><h3>Grill</h3><p>A relentless interview until the plan holds.</p></li>
-      <li><h3>Spec</h3><p>Write down what done means.</p></li>
-      <li><h3>Tickets</h3><p>Thin vertical slices with their blocking edges.</p></li>
-      <li><h3>Implement</h3><p>Slice by slice, tests first.</p></li>
-      <li><h3>Review</h3><p>Standards and spec, by an agent that did not write it.</p></li>
-      <li><h3>Retro</h3><p>What changes next time.</p></li>
+<section class="wide" id="manual" aria-labelledby="manual-h">
+  <div class="in">
+    <h2 id="manual-h" class="display">The lead's shift manual.</h2>
+    <p class="intro">The team lead skill is written like an engineering manager's playbook: ten moments in a shift, each with when it applies, what to ask, what to do and what to record.</p>
+    <ol class="manual">
+      <li><h3>Taking the team</h3><p>Trust the record and the repo over recollection. Reconcile work in flight before dispatching anything.</p></li>
+      <li><h3>Assigning</h3><p>Could a strong engineer holding only this message do it right? Say the part you are least sure of.</p></li>
+      <li><h3>Waiting well</h3><p>Don't message a working teammate. Wait with a named limit.</p></li>
+      <li><h3>Blocked</h3><p>Approvals go to the human with a recommendation. Hold that teammate; keep the rest working.</p></li>
+      <li><h3>A report comes in</h3><p>A completion signal is not enough. Check the decisive claim at the revision named.</p></li>
+      <li><h3>Pushback</h3><p>Thank them first. Settle it on evidence, not rank, and say "I was wrong" when you were.</p></li>
+      <li><h3>Something broke</h3><p>Diagnose your brief, then the context, the tools and the service. The teammate comes last.</p></li>
+      <li><h3>Milestone and retro</h3><p>At most two changes, each with an owner and a check on the next task.</p></li>
+      <li><h3>Managing up</h3><p>No surprises: bad news early, with a recommendation.</p></li>
+      <li><h3>Yielding and closing</h3><p>A pause is not a final report. Record what is on disk and the first resume action.</p></li>
     </ol>
-    <p class="route-note"><span class="gate-note">A build that fits one session goes from the grill straight to implement, test first, then review. Research, planning, debugging and review requests take shorter routes. For a team, the team lead skill briefs agents in Herdr panes, checks their receipts and sends work to a reviewer before accepting it.</span></p>
   </div>
 </section>
 
-<section id="install" aria-labelledby="install-h">
-  <div class="wrap two">
+<section class="wide" aria-labelledby="agents-h">
+  <div class="in">
+    <h2 id="agents-h" class="display">Five agents. One floor.</h2>
+    <p class="intro">Each agent's rules file gets the same Guide, and every agent gets the same 39 skills: Matt Pocock's engineering workflow run as ordered phases, plus DDD, review and the team lead. Herdr gives each agent its own pane, so the lead can see, brief and hear from any mix of them.</p>
+    <div class="agents">
+      <div class="agent"><b>Claude Code</b><code>~/.claude/CLAUDE.md</code></div>
+      <div class="agent"><b>Codex</b><code>~/.codex/AGENTS.md</code></div>
+      <div class="agent"><b>Droid</b><code>~/.factory/AGENTS.md</code></div>
+      <div class="agent"><b>Pi</b><code>~/.pi/agent/AGENTS.md</code></div>
+      <div class="agent"><b>OpenCode</b><code>~/.config/opencode/AGENTS.md</code></div>
+    </div>
+    <ul class="facts">
+      <li><b>You keep the keys.</b> Approvals, product choices and publishing stay yours. The lead brings them to you with a recommendation and keeps the rest of the team working.</li>
+      <li><b>Gates between phases.</b> The lead runs the contract validator before every dispatch, review and acceptance. A brief, receipt or phase record without its evidence is refused, and the fix is printed.</li>
+      <li><b>One writer per file.</b> Parallel work goes to isolated worktrees, and nothing is reviewed until every writer has returned.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="wide" id="install" aria-labelledby="install-h">
+  <div class="in two">
     <div>
-      <h2 id="install-h">Install it, check it, take it out.</h2>
-      <p>This is a real run of Mifal 0.1.1 in a disposable home folder. The install writes only what the dry run listed. <code>mifal doctor</code> checks the wiring: every rules file carries the Guide, and the 39 skills are in place.</p>
-      <p><code>mifal uninstall</code> removes every file, link and block Mifal wrote, restores what it moved aside, and keeps any file you edited. Herdr stays installed.</p>
-      <p class="hint">The final comparison is against a snapshot of the home folder taken before the install. It leaves out the working folder holding the clone and the .cache and .npm caches, and Herdr was already installed.</p>
-      <p><a href="https://github.com/romiluz13/mifal/blob/main/docs/INSTALL.md">Everything the install writes</a></p>
-    </div>
-    <div class="term">
-      <div class="term-top"><i></i><i></i><i></i></div>
-      <video controls muted playsinline preload="none" poster="media/install-run-poster.jpg" aria-label="Recorded terminal run: dry run, install, doctor and uninstall">
-        <source src="media/install-run.mp4" type="video/mp4">
-      </video>
-    </div>
-  </div>
-</section>
-
-<section class="deep" id="trust" aria-labelledby="trust-h">
-  <div class="wrap">
-    <h2 id="trust-h">What is checked, and what is not.</h2>
-    <p class="intro">A program can refuse a record. It cannot make an agent write one. Mifal keeps that line visible.</p>
-    <div class="checks">
-      <div class="prog">
-        <h3>Checked by a program, every time it runs</h3>
-        <ul>
-          <li>What the installer, update and uninstall write, what they keep, and how they roll back, with the Manifest as the record.</li>
-          <li>The install's files, links and blocks, the validator's own self-check, Herdr, and the agent-browser CLI, through <code>mifal doctor</code>.</li>
-          <li>A brief, a receipt or a phase record, when the agent or the lead runs the validator.</li>
-        </ul>
-      </div>
-      <div class="agent">
-        <h3>Relies on the agent following the Guide</h3>
-        <ul>
-          <li>Reading the engineering workflow and loading the skill for each phase.</li>
-          <li>Running the validator at each gate, and asking you before cutting a step.</li>
-          <li>Reporting only what its evidence shows. Treat a session's claims as claims until you see the evidence they cite.</li>
-        </ul>
+      <h2 id="install-h" class="display">Open the factory.</h2>
+      <p>macOS, git and Python 3.9 or later. The dry run lists every write and changes nothing; the installer asks before it installs Herdr.</p>
+      <p>Then start your agents inside Herdr, and tell one of them to lead the team toward your goal.</p>
+      <ul class="facts">
+        <li><b>Alpha.</b> The installer, update, uninstall, doctor and validator are covered by tests on Python 3.9 and 3.13. Live checks with each agent are not yet recorded.</li>
+        <li><b>Reversible.</b> <code>mifal uninstall</code> removes what Mifal wrote and keeps any file you edited.</li>
+      </ul>
+      <div class="links">
+        <a href="https://github.com/romiluz13/mifal/blob/main/docs/INSTALL.md">What the install writes</a>
+        <a href="https://github.com/romiluz13/mifal/blob/main/docs/TRUST.md">What is checked, and what is not</a>
+        <a href="https://github.com/romiluz13/mifal">Source on GitHub</a>
       </div>
     </div>
-  </div>
-</section>
-
-<section id="status" aria-labelledby="status-h">
-  <div class="wrap two">
     <div>
-      <h2 id="status-h">Alpha, and honest about it.</h2>
-      <p>The installer, update, uninstall, doctor and validator are covered by tests on Python 3.9 and 3.13 on macOS. A live check with each agent fills a cell below only once it is recorded: a first session that quotes the Guide and lists Mifal's skills, and a lead that dispatches a task to that agent through Herdr and receives its reply.</p>
-      <p>Linux and Windows are not supported in this release.</p>
-    </div>
-    <div class="scroll-x">
-      <table class="matrix">
-        <thead><tr><th scope="col">macOS</th><th scope="col">Live check</th></tr></thead>
-        <tbody>
-          <tr><td>Claude Code</td><td class="u">Not yet recorded</td></tr>
-          <tr><td>Codex</td><td class="u">Not yet recorded</td></tr>
-          <tr><td>Droid</td><td class="u">Not yet recorded</td></tr>
-          <tr><td>Pi</td><td class="u">Not yet recorded</td></tr>
-          <tr><td>OpenCode</td><td class="u">Not yet recorded</td></tr>
-        </tbody>
-      </table>
+      <div class="cmd">
+<pre id="install-cmd"><span class="p">$ </span>git clone https://github.com/romiluz13/mifal.git
+<span class="p">$ </span>cd mifal &amp;&amp; ./install.sh --dry-run
+<span class="p">$ </span>./install.sh &amp;&amp; mifal doctor</pre>
+        <div class="bar"><span>Three commands, then <code>herdr</code>.</span><button type="button" id="copy">Copy</button></div>
+      </div>
+      <div class="term">
+        <video controls muted playsinline preload="none" poster="media/install-run-poster.jpg" aria-label="Recorded terminal run of Mifal 0.1.1: dry run, install, doctor and uninstall in a disposable home folder">
+          <source src="media/install-run.mp4" type="video/mp4">
+        </video>
+      </div>
     </div>
   </div>
 </section>
 </main>
 
 <footer>
-  <div class="wrap cols">
+  <div class="in">
     <div>
       <p><span class="he" lang="he">מפעל</span> (mifal) is Hebrew for factory.</p>
-      <p>Mifal ships the work of others under their licences, recorded per file: Matt Pocock's skills, DDD, Superpowers, agent-browser, Anthropic's frontend-design, Herdr's skill, Impeccable and LottieFiles motion-design. The <a href="https://github.com/romiluz13/mifal/blob/main/NOTICE">NOTICE</a> lists them. Mifal itself is MIT.</p>
-      <p>The hero film was generated with Higgsfield. Everything else on this page is drawn from the build record or recorded from a real run.</p>
+      <p>The shift on this page is replayed from Mifal's own build record of 19 and 20 October 2026, and the messages are quoted from it. The floor's run for your own goal is an illustration.</p>
+      <p>Mifal ships the work of others under their licences: Matt Pocock's skills, DDD, Superpowers, agent-browser, Anthropic's frontend-design, Herdr's skill, Impeccable and LottieFiles motion-design. The <a href="https://github.com/romiluz13/mifal/blob/main/NOTICE">NOTICE</a> lists them. Mifal itself is MIT.</p>
     </div>
     <div>
       <p><a href="https://github.com/romiluz13/mifal">Source on GitHub</a></p>
-      <p><a href="https://github.com/romiluz13/mifal/blob/main/docs/TRUST.md">What Mifal checks</a></p>
+      <p><a href="https://github.com/romiluz13/mifal/releases">Releases</a></p>
       <p><a href="https://github.com/romiluz13/mifal/blob/main/MAINTAINING.md">Maintaining Mifal</a></p>
       <p><a href="https://github.com/romiluz13/mifal/issues">Report a problem</a></p>
     </div>
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/gsap.min.js" defer></script>
 <script>
-(() => {
+addEventListener("DOMContentLoaded", () => {
   const copy = document.getElementById("copy");
   copy.addEventListener("click", async () => {
     const text = document.getElementById("install-cmd").innerText.replace(/^\$ /gm, "");
-    try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; }
-    catch { copy.textContent = "Select and copy"; }
+    try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; } catch { copy.textContent = "Select to copy"; }
     setTimeout(() => (copy.textContent = "Copy"), 2000);
   });
 
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduce) { const v = document.querySelector(".hero video"); v.removeAttribute("autoplay"); v.pause(); }
-
+  const G = reduce ? null : window.gsap;
   const NS = "http://www.w3.org/2000/svg";
-  const RED = "#C2362B", GREEN = "#2E7A4C", INK = "#1F2A55", SOFT = "#4F5A7C", RULE = "#C7BB9F", PAPER = "#E4D8BF";
-  const LANES = [
-    { id: "opus-cto", name: "Lead", who: "opus-cto, Claude" },
-    { id: "sol-reviewer", name: "Reviewer", who: "sol-reviewer, Codex" },
-    { id: "haiku-researcher", name: "Researcher", who: "haiku-researcher, Claude" },
-    { id: "mifal-reviewer", name: "Outside critic", who: "mifal-reviewer, Claude" },
-  ];
-  const HOLD_TEXT = {
-    "2": "Plan review. Seven gaps in the design, among them writing a rules file the agent does not read, no journal to undo an interrupted install, and overwriting a file you had edited.",
-    "2.2": "Plan re-review. Four more: an adopted rules file that would outlive uninstall and keep hiding the original, symlinked skill files, OpenCode's config folders, and no recovery if an update failed after installing but before advancing the clone.",
-    "4.1": "Code review of the installer. Eight defects, including an edit lost while an update waited for approval, and a doctor that passed when Codex was not reading the Guide.",
-    "4.2": "Recheck of the fixes. Rollback could delete a file it had never created.",
-    "4.4": "Review of 0.1.1. A maintainer command followed a symlink and overwrote a file outside the repo. The fix landed 15 minutes later.",
+  const svg = document.getElementById("scene");
+  const note = document.getElementById("note");
+  const COL = {
+    floor: "#26332E", grid: "#2E3C36", wallTop: "#3E4E47", wallFace: "#2F3D37",
+    monT: "#5D6B65", monL: "#46544E", monR: "#3B4842",
+    belt: "#34433D", beltLine: "#566861", crateT: "#D2A564", crateL: "#AF8448", crateR: "#926B39",
+    yellow: "#F2C230", red: "#E5432F", green: "#43C28A", idle: "#55645D", screen: "#0F1714", ink: "#EDF1EE", wire: "#4D5E57",
   };
-  const CLEAR_TEXT = {
-    "4.3": "Recheck of 0.1.0 cleared it: no open blocking finding.",
-    "4.5": "Recheck of 0.1.1 cleared it: the symlink fix holds.",
-  };
-  const W = 1000, X0 = 196, X1 = 984, TOP = 36, LANE_H = 96;
-  const H = TOP + LANE_H * LANES.length + 26;
-  const laneY = Object.fromEntries(LANES.map((l, i) => [l.id, TOP + 38 + i * LANE_H]));
-  const svg = document.getElementById("timeline");
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  const el = (tag, attrs, parent = svg) => {
+  const LAMP = { idle: COL.idle, work: COL.yellow, hold: COL.red, done: COL.green };
+  const SCREEN = { idle: COL.idle, work: "#7FE0AE", hold: COL.red, done: COL.green };
+  const U = 30, CX = Math.cos(Math.PI / 6), SY = 0.5, OX = 14 * CX * U + 70, OY = 168;
+  const P = (x, y, z = 0) => [OX + (x - y) * CX * U, OY + (x + y) * SY * U - z * U];
+  const pts = (...a) => a.map((p) => p.join(",")).join(" ");
+  const el = (tag, attrs = {}, parent = svg) => {
     const n = document.createElementNS(NS, tag);
     for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
     parent.appendChild(n);
     return n;
   };
-  const fmt = (t) => {
-    const d = new Date(t), p = (n) => String(n).padStart(2, "0");
-    return `${d.getUTCDate()} Oct, ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
-  };
+  const g = (parent = svg) => el("g", {}, parent);
+  const text = (parent, at, str, attrs) => { const t = el("text", { x: at[0], y: at[1], ...attrs }, parent); t.textContent = str; return t; };
+  function box(parent, x, y, z, w, d, h, c = {}) {
+    const grp = g(parent);
+    el("polygon", { points: pts(P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)), fill: c.l || "#BCC5C0" }, grp);
+    el("polygon", { points: pts(P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)), fill: c.r || "#99A49E" }, grp);
+    el("polygon", { points: pts(P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)), fill: c.t || "#E4E8E5" }, grp);
+    return grp;
+  }
+  // Maps flat (u, v) drawing onto a wall-facing plane at (x, y, z): u runs along +x, v runs down.
+  const faceX = (x, y, z) => { const [tx, ty] = P(x, y, z); return `matrix(${CX},${SY},0,1,${tx},${ty})`; };
+  const monitor = { t: COL.monT, l: COL.monL, r: COL.monR };
 
-  fetch("media/events.json").then((r) => r.json()).then(({ events }) => {
-    events.forEach((e) => (e.t = Date.parse(e.at)));
-    events.sort((a, b) => a.t - b.t);
-    const times = [...new Set(events.map((e) => e.t))].sort((a, b) => a - b);
-    const GAP = 50 * 60e3, BREAK = 30, MINW = 30;
-    const segs = [];
-    let start = times[0];
-    for (let i = 1; i < times.length; i++) if (times[i] - times[i - 1] > GAP) { segs.push({ from: start, to: times[i - 1] }); start = times[i]; }
-    segs.push({ from: start, to: times[times.length - 1] });
-    const active = segs.reduce((s, g) => s + (g.to - g.from), 0);
-    const pxPerMs = (X1 - X0 - BREAK * (segs.length - 1) - MINW * segs.length) / active;
-    const breaks = [];
-    let cur = X0;
-    segs.forEach((g, i) => {
-      g.x = cur + MINW / 2; cur += MINW + (g.to - g.from) * pxPerMs;
-      if (i < segs.length - 1) { breaks.push({ x: cur, gap: segs[i + 1].from - g.to }); cur += BREAK; }
-    });
-    const xOf = (t) => {
-      for (const [i, g] of segs.entries()) {
-        if (t <= g.to) return t >= g.from ? g.x + (t - g.from) * pxPerMs : breaks[i - 1].x + BREAK / 2;
-      }
-      return X1;
-    };
-
-    for (const l of LANES) {
-      const y = laneY[l.id];
-      el("line", { x1: X0 - 6, x2: X1, y1: y, y2: y, stroke: RULE, "stroke-width": 1.5 });
-      el("text", { x: 0, y: y - 4, class: "lane-name" }).textContent = l.name;
-      el("text", { x: 0, y: y + 18, class: "lane-who" }).textContent = l.who;
-    }
-    for (const b of breaks) {
-      el("rect", { x: b.x + 4, y: TOP, width: BREAK - 8, height: LANE_H * LANES.length, fill: PAPER });
-      for (const l of LANES) {
-        const y = laneY[l.id];
-        el("line", { x1: b.x + 9, y1: y + 7, x2: b.x + 14, y2: y - 7, stroke: SOFT, "stroke-width": 1.5 });
-        el("line", { x1: b.x + 16, y1: y + 7, x2: b.x + 21, y2: y - 7, stroke: SOFT, "stroke-width": 1.5 });
-      }
-      const h = b.gap / 3600e3;
-      el("text", { x: b.x + BREAK / 2, y: TOP + 6, "text-anchor": "middle", "font-size": 13.5, fill: SOFT, "font-family": "IBM Plex Mono, monospace" })
-        .textContent = `${h < 1.5 ? h.toFixed(1) : Math.round(h)}h`;
-    }
-
-    const marks = [];
-    const holdOffset = { "2.2": 1, "4.2": 1 };
-    for (const e of events) {
-      if (e.kind === "return" && e.lane !== "haiku-researcher") continue;
-      const x = xOf(e.t), lane = e.kind === "debate" ? "mifal-reviewer" : e.lane, y = laneY[lane];
-      const g = el("g", { class: "ev", tabindex: 0, role: "button" });
-      let hit = { x: x - 9, y: y - 14, width: 18, height: 28 };
-      if (e.kind === "brief") {
-        const y0 = laneY["opus-cto"];
-        el("line", { x1: x, y1: y0, x2: x, y2: y - 9, stroke: INK, "stroke-width": 1, opacity: .45 }, g);
-        el("path", { d: `M${x - 5} ${y - 11}h10l-5 9z`, fill: INK }, g);
-        hit = { x: x - 7, y: y - 16, width: 14, height: 20 };
-      } else if (e.kind === "commit") {
-        el("line", { x1: x, y1: y - 9, x2: x, y2: y + 9, stroke: INK, "stroke-width": 2 }, g);
-        hit = { x: x - 4, y: y - 12, width: 8, height: 24 };
-      } else if (e.kind === "push") {
-        const reviewed = e.sha !== "d231b30";
-        el("rect", { x: x - 7, y: y - 7, width: 14, height: 14, fill: reviewed ? INK : "#EEE5D2", stroke: INK, "stroke-width": 2 }, g);
-        el("text", { x, y: y - 14, "text-anchor": "middle", "font-size": 13, fill: INK, "font-family": "IBM Plex Mono, monospace" }, g).textContent = e.sha;
-      } else if (e.kind === "hold") {
-        const yy = y + 18 + (holdOffset[e.task] ? 34 : 0);
-        el("line", { x1: x, y1: y, x2: x, y2: yy, stroke: RED, "stroke-width": 1.5 }, g);
-        el("rect", { x: x - 34, y: yy, width: 68, height: 26, fill: RED, rx: 2 }, g);
-        el("text", { x, y: yy + 18, "text-anchor": "middle", "font-size": 14.5, "font-weight": 750, fill: "#FFF7EC" }, g).textContent = `HOLD ${e.blocking}`;
-        hit = { x: x - 32, y: y - 4, width: 64, height: yy - y + 30 };
-      } else if (e.kind === "clear") {
-        el("circle", { cx: x, cy: y + 30, r: 12, fill: GREEN }, g);
-        el("path", { d: `M${x - 5.5} ${y + 30}l3.5 4 7-8`, fill: "none", stroke: "#FFF7EC", "stroke-width": 2.2 }, g);
-        hit = { x: x - 14, y: y - 4, width: 28, height: 48 };
-      } else if (e.kind === "return") {
-        el("circle", { cx: x, cy: y, r: 5, fill: INK }, g);
-      } else if (e.kind === "debate") {
-        const lead = e.file.includes("lead") && !e.file.includes("HANDOFF");
-        el("path", { d: `M${x} ${y - 8}l8 8-8 8-8-8z`, fill: lead ? "#EEE5D2" : INK, stroke: INK, "stroke-width": 1.8 }, g);
-      }
-      el("rect", { ...hit, class: "hit" }, g);
-      g.setAttribute("aria-label", title(e).replace(/\s+/g, " "));
-      g.addEventListener("click", () => select(e));
-      g.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); select(e); } });
-      marks.push({ e, g, x });
-    }
-    const headLine = el("line", { x1: X1, x2: X1, y1: TOP - 6, y2: H - 8, stroke: INK, "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0 });
-
-    function title(e) {
-      const who = (LANES.find((l) => l.id === e.lane) || {}).who || e.lane;
-      switch (e.kind) {
-        case "hold": return `HOLD: ${e.blocking} blocking finding${e.blocking > 1 ? "s" : ""}`;
-        case "clear": return "Review cleared";
-        case "brief": return `Brief sent to ${who.split(",")[0]}: task ${e.task}`;
-        case "commit": return `Commit ${e.sha}`;
-        case "push": return `Pushed ${e.sha} to GitHub`;
-        case "return": return `Researcher returned task ${e.task}`;
-        case "debate": return e.file.includes("HANDOFF") ? "Pre-publish audit handed to the lead" : `Plan debate: ${e.file.replace(".md", "")}`;
-      }
-      return e.kind;
-    }
-    function body(e) {
-      if (e.kind === "hold") return HOLD_TEXT[e.task] || "";
-      if (e.kind === "clear") return CLEAR_TEXT[e.task] || "";
-      if (e.kind === "commit") return `${e.subject}. A commit on the build branch; the public history is squashed into release commits.`;
-      if (e.kind === "push") return {
-        f71698a: "0.1.0, pushed to the then-private repo while its final recheck was still running. Recheck 4.3 cleared that tree five minutes later.",
-        d231b30: "Pushed without a review first. Review 4.4 followed and found a blocking problem.",
-        "74cd732": "0.1.1, pushed after recheck 4.5 cleared it.",
-      }[e.sha] || "";
-      if (e.kind === "brief") return "The lead validates the brief before it is sent.";
-      if (e.kind === "debate") return "The lead and an outside critic argued the 0.2 plan to agreement in four rounds.";
-      if (e.kind === "return") return "The researcher's return, checked against its receipt contract.";
-      return "";
-    }
-    const card = document.getElementById("card");
-    let selected = null;
-    function select(e) {
-      selected = e;
-      marks.forEach((m) => m.g.classList.toggle("sel", m.e === e));
-      const cls = e.kind === "hold" ? "hold" : e.kind === "clear" ? "clear" : "";
-      const who = (LANES.find((l) => l.id === (e.kind === "debate" ? "mifal-reviewer" : e.lane)) || {}).who || "";
-      const src = e.src.startsWith("git log") ? "git log of the build branch" : e.src.startsWith("state.md") ? `the build record, line ${e.src.split(":")[1]}` : e.src;
-      const link = e.kind === "push" ? `<p><a href="https://github.com/romiluz13/mifal/commit/${e.sha}">See ${e.sha} on GitHub</a></p>` : "";
-      card.innerHTML = `<p class="kind ${cls}"></p><p class="b"></p>${link}<dl><dt>When</dt><dd>${fmt(e.t)}</dd><dt>Who</dt><dd></dd><dt>Source</dt><dd></dd></dl>`;
-      card.querySelector(".kind").textContent = title(e);
-      card.querySelector(".b").textContent = body(e);
-      const dds = card.querySelectorAll("dd");
-      dds[1].textContent = who; dds[2].textContent = src;
-    }
-
-    const scrub = document.getElementById("scrub"), clock = document.getElementById("clock");
-    const found = document.getElementById("t-found"), rounds = document.getElementById("t-rounds"), open = document.getElementById("t-open");
-    function draw(k) {
-      const head = X0 + (X1 - X0) * k;
-      let f = 0, r = 0, last = times[0];
-      for (const m of marks) {
-        const on = m.x <= head + .5;
-        m.g.style.opacity = on ? 1 : 0.08;
-        m.g.style.pointerEvents = on ? "" : "none";
-        if (on) { last = Math.max(last, m.e.t); if (m.e.kind === "hold") { f += m.e.blocking; r++; } if (m.e.kind === "clear") r++; }
-      }
-      headLine.setAttribute("x1", head); headLine.setAttribute("x2", head);
-      headLine.setAttribute("opacity", k < 1 ? .8 : 0);
-      found.textContent = f; rounds.textContent = r;
-      open.textContent = k < 1 ? "–" : "0";
-      clock.textContent = fmt(last);
-      scrub.value = Math.round(k * 1000);
-    }
-    scrub.addEventListener("input", () => draw(scrub.value / 1000));
-    let raf = null;
-    function play() {
-      cancelAnimationFrame(raf);
-      const t0 = performance.now(), dur = 7000;
-      const step = (now) => { const k = Math.min((now - t0) / dur, 1); draw(k); if (k < 1) raf = requestAnimationFrame(step); };
-      raf = requestAnimationFrame(step);
-    }
-    document.getElementById("play").addEventListener("click", play);
-    scrub.addEventListener("pointerdown", () => cancelAnimationFrame(raf));
-    select(events.find((e) => e.kind === "hold" && e.task === "4.4"));
-    draw(1);
-    if (!reduce && "IntersectionObserver" in window) {
-      const io = new IntersectionObserver((entries) => {
-        if (entries.some((x) => x.isIntersecting)) { io.disconnect(); play(); }
-      }, { threshold: 0.4 });
-      io.observe(svg);
-    }
-  }).catch(() => {
-    document.getElementById("card").textContent = "The timeline could not load. The same record is in the README's mission replay.";
+  const W = 22, D = 14;
+  el("polygon", { points: pts(P(0, 0), P(W, 0), P(W, D), P(0, D)), fill: COL.floor });
+  const gridG = el("g", { stroke: COL.grid, "stroke-width": 1 });
+  for (let i = 2; i < W; i += 2) el("line", { x1: P(i, 0)[0], y1: P(i, 0)[1], x2: P(i, D)[0], y2: P(i, D)[1] }, gridG);
+  for (let j = 2; j < D; j += 2) el("line", { x1: P(0, j)[0], y1: P(0, j)[1], x2: P(W, j)[0], y2: P(W, j)[1] }, gridG);
+  const walls = g();
+  box(walls, 0, -0.35, 0, W, 0.35, 3.4, { t: COL.wallTop, l: COL.wallFace, r: COL.wallFace });
+  box(walls, -0.35, -0.35, 0, 0.35, D + 0.35, 3.4, { t: COL.wallTop, l: COL.wallFace, r: COL.wallFace });
+  const lanes = el("g", { stroke: COL.yellow, "stroke-width": 2.2, "stroke-dasharray": "10 7", opacity: .75 });
+  [[0.4, 9.3, W - 0.2, 9.3], [0.4, 12.7, W - 0.2, 12.7], [7.2, 0.6, 7.2, 4.9], [14.3, 0.6, 14.3, 4.9]].forEach(([a, b, c, d]) => {
+    const [x1, y1] = P(a, b), [x2, y2] = P(c, d); el("line", { x1, y1, x2, y2 }, lanes);
   });
-})();
+
+  const board = el("g", { transform: faceX(15.2, 0.02, 3.0) });
+  el("rect", { x: 0, y: 0, width: 5.6 * U, height: 1.9 * U, fill: "#18211E", stroke: "#4B5C55", "stroke-width": 2 }, board);
+  text(board, [10, 18], "RETRO", { class: "sign", "font-size": 16, fill: COL.yellow });
+  const retroLines = [0, 1].map((i) => text(board, [10, 34 + i * 14], "", { "font-size": 10.5, fill: COL.ink }));
+
+  const office = g();
+  el("polygon", { points: pts(P(7.6, 0.8), P(13.9, 0.8), P(13.9, 4.6), P(7.6, 4.6)), fill: "#2D3B36" }, office);
+  box(office, 9.4, 1.8, 0, 2.8, 1.2, 0.75);
+  box(office, 9.9, 1.75, 0.75, 1.8, 0.12, 1.05, monitor);
+  const officeScreen = el("g", { transform: faceX(9.95, 1.88, 1.74) }, office);
+  el("rect", { x: 0, y: 0, width: 1.7 * U, height: 0.9 * U, fill: COL.screen }, officeScreen);
+  const officeLines = [0, 1, 2, 3].map((i) => el("rect", { x: 4, y: 4 + i * 6, width: 20 + (i * 13) % 26, height: 2.6, fill: COL.yellow, opacity: .85 }, officeScreen));
+  const glassFill = "rgba(143,195,214,.10)", glassLine = "rgba(143,195,214,.55)";
+  el("polygon", { points: pts(P(7.6, 4.6), P(13.9, 4.6), P(13.9, 4.6, 2.7), P(7.6, 4.6, 2.7)), fill: glassFill, stroke: glassLine, "stroke-width": 1.4 }, office);
+  el("polygon", { points: pts(P(13.9, 0.8), P(13.9, 4.6), P(13.9, 4.6, 2.7), P(13.9, 0.8, 2.7)), fill: glassFill, stroke: glassLine, "stroke-width": 1.4 }, office);
+  el("polygon", { points: pts(P(7.6, 0.8, 2.7), P(13.9, 0.8, 2.7), P(13.9, 4.6, 2.7), P(7.6, 4.6, 2.7)), fill: "rgba(143,195,214,.06)", stroke: glassLine, "stroke-width": 1.4 }, office);
+  const sign = P(10.75, 2.7, 3.35);
+  text(office, [sign[0], sign[1] - 10], "TEAM LEAD", { "text-anchor": "middle", class: "sign", "font-size": 26, fill: COL.ink });
+  text(office, [sign[0], sign[1] + 7], "opus-cto, Claude Code", { "text-anchor": "middle", class: "tag2" });
+  const ol = P(13.2, 1.2, 2.7);
+  const officeLamp = el("circle", { cx: ol[0], cy: ol[1] - 6, r: 7, fill: LAMP.work }, office);
+
+  const BOOTHS = [
+    { id: "research", x: 0.9, who: "haiku-researcher", app: "Claude Code" },
+    { id: "review", x: 5.1, who: "sol-reviewer", app: "Codex" },
+    { id: "critic", x: 9.3, who: "mifal-reviewer", app: "Claude Code" },
+    { id: "open1", x: 13.5, who: "open booth", app: "Droid" },
+    { id: "open2", x: 17.7, who: "open booth", app: "Pi, OpenCode" },
+  ];
+  const booth = {};
+  for (const b of BOOTHS) {
+    const grp = g();
+    el("polygon", { points: pts(P(b.x - 0.2, 5.3), P(b.x + 3.2, 5.3), P(b.x + 3.2, 7.4), P(b.x - 0.2, 7.4)), fill: "none", stroke: COL.yellow, "stroke-width": 1.2, opacity: .4 }, grp);
+    box(grp, b.x, 6.1, 0, 2.9, 1.1, 0.75);
+    box(grp, b.x + 0.5, 6.0, 0.75, 1.9, 0.12, 1.1, monitor);
+    const scr = el("g", { transform: faceX(b.x + 0.55, 6.13, 1.8) }, grp);
+    el("rect", { x: 0, y: 0, width: 1.8 * U, height: 0.95 * U, fill: COL.screen }, scr);
+    const lines = [0, 1, 2, 3].map((i) => el("rect", { x: 4, y: 4 + i * 6.2, width: 14 + ((i * 17 + b.x * 7) % 30), height: 2.6, fill: COL.idle, opacity: .5 }, scr));
+    const p0 = P(b.x + 2.75, 5.95, 0.75), p1 = P(b.x + 2.75, 5.95, 2.35);
+    const top = p1[1] - 66;
+    el("line", { x1: p0[0], y1: p0[1], x2: p1[0], y2: top + 52, stroke: "#7D8A84", "stroke-width": 2 }, grp);
+    const glow = el("circle", { cx: p1[0], cy: p1[1], r: 16, fill: LAMP.idle, opacity: 0 }, grp);
+    const lamp = el("circle", { cx: p1[0], cy: p1[1], r: 7.5, fill: LAMP.idle }, grp);
+    el("rect", { x: p1[0] - 64, y: top, width: 128, height: 52, fill: "#131B18", stroke: "#4B5C55", "stroke-width": 1.2 }, grp);
+    text(grp, [p1[0], top + 18], b.app, { "text-anchor": "middle", class: "tag" });
+    text(grp, [p1[0], top + 32], b.who, { "text-anchor": "middle", class: "tag2" });
+    const state = text(grp, [p1[0], top + 46], "", { "text-anchor": "middle", class: "state", fill: COL.idle });
+    booth[b.id] = { ...b, lamp, glow, lines, state, top: [p1[0], top] };
+  }
+
+  const wires = {};
+  const hub = P(10.75, 2.7, 2.95);
+  for (const b of BOOTHS) {
+    const [tx, ty] = booth[b.id].top;
+    const mx = (hub[0] + tx) / 2, my = Math.min(hub[1], ty) - 40;
+    wires[b.id] = el("path", { d: `M${hub[0]},${hub[1]} Q${mx},${my} ${tx},${ty}`, fill: "none", stroke: COL.wire, "stroke-width": 1.3, "stroke-dasharray": "3 4" });
+  }
+
+  box(svg, 0.4, 9.6, 0, 1.6, 2.6, 1.7, { t: "#6A5A2E", l: "#4E4325", r: "#40371F" });
+  text(svg, P(1.2, 10.9, 1.95), "GOAL", { "text-anchor": "middle", class: "sign", "font-size": 16, fill: COL.yellow });
+  const GATE = { x: 7.6, y: 9.75 };
+  const gBase = P(GATE.x, GATE.y, 0), gTop = P(GATE.x, GATE.y, 1.55);
+  box(svg, 2.2, 10.2, 0, W - 2.6, 1.35, 0.5, { t: COL.belt, l: "#2A3632", r: "#26312D" });
+  const bA = P(2.2, 10.88, 0.5), bB = P(W - 0.4, 10.88, 0.5);
+  const beltLine = el("line", { x1: bA[0], y1: bA[1], x2: bB[0], y2: bB[1], stroke: COL.beltLine, "stroke-width": 9, "stroke-dasharray": "3 9" });
+  const crateLayer = g();
+  el("line", { x1: gBase[0], y1: gBase[1], x2: gTop[0], y2: gTop[1], stroke: COL.yellow, "stroke-width": 4 });
+  const armLen = 1.95 * U;
+  // The arm lies across the belt (+y); raising it rotates it up and out of the way.
+  const arm = el("line", { x1: gTop[0], y1: gTop[1], x2: gTop[0] - armLen * CX, y2: gTop[1] + armLen * SY, stroke: COL.red, "stroke-width": 5, "stroke-linecap": "round", opacity: 0 });
+  const holdTag = el("g", { opacity: 0 });
+  const tagAt = [gTop[0] - armLen * CX - 10, gTop[1] + armLen * SY + 22];
+  el("rect", { x: tagAt[0] - 34, y: tagAt[1] - 19, width: 68, height: 25, fill: COL.red }, holdTag);
+  text(holdTag, tagAt, "HOLD", { "text-anchor": "middle", class: "sign", "font-size": 19, fill: "#FFF6EC" });
+  const dock = P(W - 1.1, 13.3, 0.1);
+  text(svg, [dock[0] + 4, dock[1] + 2], "SHIP", { "text-anchor": "middle", class: "sign", "font-size": 18, fill: COL.yellow });
+  const shipTag = text(svg, [dock[0] - 70, dock[1] + 26], "", { "text-anchor": "middle", class: "tag", opacity: 0 });
+
+  const orderG = el("g", { opacity: 0 });
+  const intakeTop = P(1.2, 10.9, 1.7);
+  el("line", { x1: intakeTop[0], y1: 240, x2: intakeTop[0], y2: intakeTop[1] - 22, stroke: COL.yellow, "stroke-width": 1.5 }, orderG);
+  el("rect", { x: 74, y: 194, width: 240, height: 46, fill: "#F3EBD3", stroke: COL.yellow, "stroke-width": 1.5 }, orderG);
+  text(orderG, [86, 212], "WORK ORDER", { "font-size": 10.5, fill: "#6B5A2A" });
+  const orderText = text(orderG, [86, 230], "", { "font-size": 13, fill: "#1C2522" });
+  const tokenLayer = g();
+
+  const S = { lamps: {}, crates: [], gate: false };
+  const set = (node, attrs) => { for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v); };
+  function lamp(id, st, label) {
+    const b = booth[id];
+    S.lamps[id] = st;
+    const words = { idle: "", work: "working", hold: "HOLD", done: "accepted" };
+    b.state.textContent = label ?? words[st];
+    b.state.setAttribute("fill", LAMP[st]);
+    if (G) {
+      G.to([b.lamp, b.glow], { attr: { fill: LAMP[st] }, duration: .35 });
+      G.to(b.glow, { attr: { opacity: st === "idle" ? 0 : .28 }, duration: .35 });
+      G.to(b.lines, { attr: { fill: SCREEN[st], opacity: st === "idle" ? .5 : .9 }, duration: .3, stagger: .05 });
+    } else {
+      set(b.lamp, { fill: LAMP[st] }); set(b.glow, { fill: LAMP[st], opacity: st === "idle" ? 0 : .28 });
+      b.lines.forEach((l) => set(l, { fill: SCREEN[st], opacity: st === "idle" ? .5 : .9 }));
+    }
+  }
+  function gate(down) {
+    if (down === S.gate) return;
+    S.gate = down;
+    if (G) {
+      const o = `${gTop[0]} ${gTop[1]}`;
+      G.set(arm, { attr: { opacity: 1 } });
+      G.fromTo(arm, { rotation: down ? 70 : 0, svgOrigin: o }, { rotation: down ? 0 : 70, svgOrigin: o, duration: .5, ease: down ? "bounce.out" : "power2.in",
+        onComplete: () => { if (!down) G.set(arm, { attr: { opacity: 0 } }); } });
+      G.to(holdTag, { attr: { opacity: down ? 1 : 0 }, duration: .3 });
+    } else { set(arm, { opacity: down ? 1 : 0 }); set(holdTag, { opacity: down ? 1 : 0 }); }
+  }
+  function token(id, back, color = COL.yellow) {
+    if (!G) return;
+    const path = wires[id], len = path.getTotalLength();
+    const env = g(tokenLayer);
+    el("rect", { x: -8, y: -5.5, width: 16, height: 11, fill: color, rx: 1 }, env);
+    el("path", { d: "M-8,-5.5 L0,1.5 L8,-5.5", fill: "none", stroke: "#1C2522", "stroke-width": 1.2 }, env);
+    const o = { t: 0 };
+    G.to(o, { t: 1, duration: 1.1, ease: "power1.inOut", onUpdate: () => {
+      const p = path.getPointAtLength((back ? 1 - o.t : o.t) * len);
+      env.setAttribute("transform", `translate(${p.x},${p.y})`);
+    }, onComplete: () => env.remove() });
+    G.fromTo(path, { attr: { stroke: color } }, { attr: { stroke: COL.wire }, duration: 1.6 });
+  }
+  function lead(st) {
+    if (G) {
+      G.to(officeLamp, { attr: { fill: LAMP[st] }, duration: .3 });
+      G.to(officeLines, { attr: { opacity: st === "idle" ? .2 : .85 }, duration: .3, stagger: .05 });
+    } else officeLamp.setAttribute("fill", LAMP[st]);
+  }
+  function retro(lines) {
+    retroLines.forEach((t, i) => {
+      t.textContent = lines[i] || "";
+      if (G) G.fromTo(t, { attr: { opacity: 0 } }, { attr: { opacity: lines[i] ? 1 : 0 }, duration: .5, delay: i * .25 });
+      else t.setAttribute("opacity", lines[i] ? 1 : 0);
+    });
+  }
+  function show(node, on) {
+    if (G) G.to(node, { attr: { opacity: on ? 1 : 0 }, duration: .4 });
+    else node.setAttribute("opacity", on ? 1 : 0);
+  }
+  function order(str) { orderText.textContent = str.length > 27 ? str.slice(0, 26) + "…" : str; show(orderG, !!str); }
+  function ship(str) { shipTag.textContent = str; show(shipTag, !!str); }
+
+  const place = (c) => c.grp.setAttribute("transform", `translate(${c.x * CX * U},${c.x * SY * U})`);
+  function makeCrate(x) {
+    const grp = g(crateLayer);
+    box(grp, 0, 10.5, 0.5, 0.75, 0.75, 0.6, { t: COL.crateT, l: COL.crateL, r: COL.crateR });
+    const c = { x, grp }; S.crates.push(c); place(c);
+  }
+  const GATE_X = GATE.x - 0.95, END_X = W - 1.1;
+  let lastSpawn = -1e9, last = performance.now();
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, .05); last = now;
+    beltLine.setAttribute("stroke-dashoffset", (-(now / 30) % 12).toFixed(1));
+    const tail = S.crates[S.crates.length - 1];
+    if (now - lastSpawn > 2600 && !(tail && tail.x < 3.6)) { makeCrate(2.4); lastSpawn = now; }
+    S.crates.forEach((c, i) => {
+      let limit = END_X + 1;
+      if (S.gate && c.x <= GATE_X + .01) limit = GATE_X;
+      if (i > 0) limit = Math.min(limit, S.crates[i - 1].x - 1.05);
+      c.x = Math.max(c.x, Math.min(c.x + dt * 1.25, limit));
+      place(c);
+      if (c.x > END_X) c.grp.setAttribute("opacity", Math.max(0, 1 - (c.x - END_X)));
+    });
+    while (S.crates.length && S.crates[0].x > END_X + .95) S.crates.shift().grp.remove();
+    for (const b of Object.values(booth)) {
+      if (S.lamps[b.id] === "work") b.lines.forEach((l, i) => l.setAttribute("width", 10 + ((now / (180 + i * 40) + i * 7 + b.x) % 34)));
+    }
+    requestAnimationFrame(frame);
+  }
+  if (reduce) [3, 6.5, 9.2, 14.5].forEach(makeCrate);
+  else requestAnimationFrame(frame);
+
+  const ALL = BOOTHS.map((b) => b.id);
+  let cur = null, timers = [];
+  const later = (ms, f) => timers.push(setTimeout(f, reduce ? 0 : ms));
+  const BEATS = {
+    hero: () => { lead("work"); ALL.forEach((b) => lamp(b, "idle")); lamp("research", "work"); gate(false); order(""); ship(""); retro([]); note.textContent = ""; },
+    goal: () => { lead("work"); ALL.forEach((b) => lamp(b, "idle")); gate(false); ship(""); order("Ship Mifal as a product"); retro([]); note.textContent = "19 Oct: the goal reaches the lead's office."; },
+    staff: () => { lamp("research", "work", "staffed"); lamp("review", "work", "staffed"); lamp("critic", "idle", "later"); lamp("open1", "idle", "open"); lamp("open2", "idle", "open"); gate(false); note.textContent = "Three agents staffed; the other booths stay open."; },
+    brief: () => { lamp("research", "work"); lamp("review", "idle", "waiting"); lamp("critic", "idle", "later"); token("research", false); gate(false); note.textContent = "Task 1: a brief goes to the researcher."; },
+    doorbell: () => { lamp("research", "done"); lamp("review", "idle", "waiting"); token("research", true, COL.green); gate(false); note.textContent = "DONE 1: the receipt comes back, and the lead checks it."; },
+    hold: () => { lamp("research", "done"); lamp("review", "hold"); token("review", true, COL.red); gate(true); note.textContent = "Review of the plan: HOLD, seven blocking findings. The line stops."; },
+    fix: () => { lamp("review", "hold"); lamp("research", "work", "regrilling"); token("review", true, COL.red); gate(true); later(1800, () => { lamp("research", "done"); lamp("review", "done", "cleared"); gate(false); }); note.textContent = "Fixes become tests, red first. The recheck clears the line."; },
+    miss: () => { lamp("research", "done"); lamp("critic", "done"); lamp("review", "hold"); token("review", false); gate(true); later(2200, () => { lamp("review", "done", "cleared"); gate(false); }); note.textContent = "03:01: the lead's own work goes to review, and is held."; },
+    ship: () => { ["research", "review", "critic"].forEach((b) => lamp(b, "done")); gate(false); retro([]); ship("v0.1.2 shipped"); note.textContent = "Every finding closed. The release goes out."; },
+    retro: () => { gate(false); retro(["brief names reserved acts", "a retro names its asset"]); note.textContent = "The retro changes the lead's own rules."; },
+  };
+  function go(name) {
+    if (name === cur) return;
+    cur = name; timers.forEach(clearTimeout); timers = [];
+    BEATS[name]();
+  }
+  go("hero");
+  const io = new IntersectionObserver((entries) => {
+    const hit = entries.find((e) => e.isIntersecting);
+    if (hit) go(hit.target.dataset.beat);
+  }, { rootMargin: "-45% 0px -45% 0px" });
+  document.querySelectorAll("[data-beat]").forEach((n) => io.observe(n));
+
+  document.getElementById("goal-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const goal = document.getElementById("goal").value.trim() || "Add passkey login to my app";
+    cur = "visitor"; timers.forEach(clearTimeout); timers = [];
+    const steps = [
+      [0, () => { order(goal); lead("work"); ALL.forEach((b) => lamp(b, "idle")); gate(false); ship(""); retro([]); note.textContent = "Illustration: the lead reads your goal and asks what only you can settle."; }],
+      [1600, () => { note.textContent = "It staffs the booths and sends each agent a brief."; ["research", "critic", "open1"].forEach((b, i) => later(i * 300, () => { lamp(b, "work", "briefed"); token(b, false); })); }],
+      [4200, () => { lamp("research", "done"); token("research", true, COL.green); lamp("open1", "done"); token("open1", true, COL.green); note.textContent = "Agents ring the doorbell; the lead checks each receipt."; }],
+      [6400, () => { lamp("review", "hold"); token("review", true, COL.red); gate(true); note.textContent = "The reviewer finds a problem and holds the line."; }],
+      [8800, () => { lamp("critic", "work", "fixing"); token("critic", false); note.textContent = "The fix goes out as a new attempt."; }],
+      [10800, () => { lamp("critic", "done"); lamp("review", "done", "cleared"); gate(false); note.textContent = "Recheck cleared. The line moves."; }],
+      [12600, () => { ship(goal.length > 24 ? goal.slice(0, 23) + "…" : goal); retro(["one lesson recorded"]); note.textContent = "Reviewed work comes out the other end. Approvals and publishing stay yours."; }],
+    ];
+    steps.forEach(([ms, f]) => later(ms, f));
+    if (matchMedia("(max-width: 860px)").matches) scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  });
+
+  if (G) {
+    G.from("h1 .l", { yPercent: 40, opacity: 0, duration: .8, stagger: .12, ease: "power3.out" });
+    G.from(".lede, .goal, .after-goal, .install-line, .scroll-cue", { y: 14, opacity: 0, duration: .6, stagger: .07, delay: .35, ease: "power2.out" });
+    G.from([...svg.children].filter((n) => n.tagName === "g" && !n.hasAttribute("opacity")), { y: -18, opacity: 0, duration: .6, stagger: .03, delay: .1, ease: "power2.out" });
+  }
+});
 </script>
 </body>
 </html>
