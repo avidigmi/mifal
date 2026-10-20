@@ -238,8 +238,9 @@ class Client:
             connection.settimeout(remaining)
             try:
                 chunk = connection.recv(65536)
-            except TimeoutError:
+            except socket.timeout:
                 # remaining was the deadline, so this timeout is the total deadline.
+                # socket.timeout, not TimeoutError: they are distinct before Python 3.10.
                 raise Refusal("transport_error",
                               "response exceeded the total request deadline") from None
             if not chunk:

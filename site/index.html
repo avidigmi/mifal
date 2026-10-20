@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mifal: one engineering workflow for your coding agents</title>
+<meta name="description" content="Mifal installs one engineering workflow into Claude Code, Codex, Droid, Pi and OpenCode, with a validator that refuses a brief, receipt or phase record that lacks its evidence. Alpha, macOS, MIT.">
+<meta property="og:title" content="Mifal">
+<meta property="og:description" content="Agents say done. Mifal asks for the evidence. One engineering workflow for five coding agents, and a validator, run at each gate, that refuses a record without its evidence.">
+<meta property="og:image" content="https://romiluz13.github.io/mifal/media/og.jpg">
+<meta property="og:url" content="https://romiluz13.github.io/mifal/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#EEE5D2">
+<link rel="icon" href="media/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@800&text=%D7%9E%D7%A4%D7%A2%D7%9C&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #EEE5D2;
+  --paper-deep: #E4D8BF;
+  --ink: #1F2A55;
+  --ink-soft: #4F5A7C;
+  --rule: #C7BB9F;
+  --red: #C2362B;
+  --green: #2E7A4C;
+  --term: #171A21;
+  --term-ink: #DCDFE6;
+  --term-dim: #8C93A6;
+  --wide: 1180px;
+  --gutter: clamp(16px, 4vw, 48px);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Archivo, "Heebo", system-ui, sans-serif;
+  font-variation-settings: "wdth" 100;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+code { font-size: .92em; }
+.wrap { max-width: var(--wide); margin: 0 auto; padding: 0 var(--gutter); }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--ink); color: var(--paper); padding: 8px 12px; z-index: 10; }
+.skip:focus { left: 8px; }
+
+/* Masthead */
+.mast { position: absolute; inset: 0 0 auto 0; z-index: 3; }
+.mast .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding-top: 22px; }
+.mark { font-weight: 850; font-variation-settings: "wdth" 70; font-size: 1.6rem; letter-spacing: .01em; text-decoration: none; display: inline-flex; align-items: baseline; gap: .45em; }
+.mark .he { font-family: "Heebo", sans-serif; font-size: .8em; color: var(--red); }
+.mast nav { display: flex; gap: clamp(14px, 3vw, 32px); font-size: .98rem; }
+.mast nav a { text-decoration: none; }
+.mast nav a:hover { text-decoration: underline; }
+
+/* Hero */
+.hero { position: relative; min-height: min(100svh, 900px); display: grid; align-items: center; overflow: hidden; isolation: isolate; }
+.hero video, .hero .poster { position: absolute; top: 0; left: -14%; width: 114%; height: 100%; object-fit: cover; object-position: 20% 50%; z-index: -2; }
+.hero::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(162deg, var(--paper) 0%, rgba(238,229,210,.92) 20%, rgba(238,229,210,0) 44%),
+    linear-gradient(90deg, rgba(238,229,210,0) 36%, rgba(238,229,210,.82) 50%, var(--paper) 64%);
+}
+.hero .wrap { width: 100%; display: grid; grid-template-columns: repeat(12, 1fr); padding-top: 110px; padding-bottom: 64px; }
+.hero-copy { grid-column: 7 / 13; }
+h1 {
+  margin: 0 0 22px;
+  font-weight: 850; font-variation-settings: "wdth" 68;
+  font-size: clamp(2.9rem, 6.4vw, 5.9rem); line-height: .93; letter-spacing: -.005em;
+  text-wrap: balance;
+}
+.lede { font-size: clamp(1.08rem, 1.5vw, 1.26rem); max-width: 34em; margin: 0 0 28px; color: var(--ink); }
+.install { border: 1.5px solid var(--ink); background: rgba(238,229,210,.9); max-width: 36rem; }
+.install pre { margin: 0; padding: 14px 16px 12px; font-size: .9rem; line-height: 1.7; overflow-x: auto; }
+.install pre .p { color: var(--ink-soft); user-select: none; }
+.install-bar { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--rule); padding: 8px 8px 8px 16px; font-size: .9rem; color: var(--ink-soft); gap: 12px; }
+button, .btn {
+  font: inherit; font-weight: 650; color: var(--paper); background: var(--ink); border: 0; padding: 8px 14px; cursor: pointer; text-decoration: none; display: inline-block;
+}
+button:hover, .btn:hover { background: #2C3A70; }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.btn.ghost:hover { background: rgba(31,42,85,.07); }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 22px; }
+.status { font-size: .95rem; color: var(--ink-soft); margin-top: 16px; }
+.status strong { color: var(--red); font-weight: 750; }
+
+/* Sections */
+section { padding: clamp(72px, 10vw, 128px) 0; }
+section.deep { background: var(--paper-deep); }
+h2 {
+  margin: 0 0 18px; font-weight: 820; font-variation-settings: "wdth" 72;
+  font-size: clamp(2.1rem, 4.2vw, 3.5rem); line-height: 1; letter-spacing: -.003em; text-wrap: balance;
+}
+h3 { margin: 0 0 6px; font-weight: 750; font-size: 1.12rem; line-height: 1.3; }
+.intro { max-width: 40em; font-size: 1.12rem; margin: 0 0 40px; }
+.two { display: grid; grid-template-columns: 5fr 7fr; gap: clamp(28px, 5vw, 72px); align-items: start; }
+.two > *, .replay > *, .checks > * { min-width: 0; }
+
+/* Replay */
+.replay { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; align-items: start; }
+.scroller { overflow-x: auto; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }
+#timeline { display: block; width: 100%; min-width: 760px; height: auto; }
+#timeline .lane-name { font-weight: 750; font-size: 19px; fill: var(--ink); }
+#timeline .lane-who { font-size: 14px; fill: var(--ink-soft); font-family: "IBM Plex Mono", monospace; }
+#timeline .ev { cursor: pointer; outline: none; }
+#timeline .ev:focus-visible .hit { stroke: var(--ink); stroke-width: 2; }
+#timeline .ev.sel .hit { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 3; }
+#timeline .hit { fill: transparent; }
+.controls { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+.controls input[type=range] { flex: 1; accent-color: var(--ink); }
+.controls .clock { font-family: "IBM Plex Mono", monospace; font-size: .85rem; color: var(--ink-soft); min-width: 13ch; text-align: right; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; font-size: 1rem; }
+.tally b { font-weight: 820; font-variation-settings: "wdth" 72; font-size: 1.5rem; margin-right: 6px; }
+.tally .open b { color: var(--red); }
+.card {
+  border: 1.5px solid var(--ink); background: var(--paper); padding: 18px 18px 16px; position: sticky; top: 24px; min-height: 260px;
+}
+.card .kind { font-weight: 820; font-variation-settings: "wdth" 72; font-size: 1.6rem; line-height: 1.05; margin: 0 0 10px; }
+.card .kind.hold { color: var(--red); }
+.card .kind.clear { color: var(--green); }
+.card p { margin: 0 0 12px; }
+.card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--rule); font-size: .9rem; }
+.card dt { color: var(--ink-soft); }
+.card dd { margin: 0; overflow-wrap: anywhere; }
+.hint { font-size: .9rem; color: var(--ink-soft); margin-top: 10px; }
+
+/* Terminal */
+.term { background: var(--term); color: var(--term-ink); border-radius: 4px; overflow: hidden; }
+.term-top { display: flex; gap: 6px; padding: 10px 12px; background: #20242D; }
+.term-top i { width: 10px; height: 10px; border-radius: 50%; background: #3A404D; display: block; }
+.term pre { margin: 0; padding: 16px 18px 18px; font-size: .84rem; line-height: 1.6; overflow-x: auto; white-space: pre; }
+.term .cmd { color: #FFFFFF; }
+.term .dim { color: var(--term-dim); }
+.term .err { color: #FF8F84; }
+.term video { display: block; width: 100%; height: auto; }
+
+/* Route */
+.route { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); counter-reset: step; border-top: 1.5px solid var(--ink); }
+.route li { counter-increment: step; padding: 16px 16px 4px 0; position: relative; }
+.route li + li { padding-left: 16px; border-left: 1px solid var(--rule); }
+.route li::before { content: counter(step); display: block; font-weight: 820; font-variation-settings: "wdth" 72; font-size: 2.2rem; line-height: 1; margin-bottom: 10px; color: var(--ink-soft); }
+.route p { margin: 0; font-size: .95rem; }
+.route-note { margin-top: 28px; max-width: 46em; }
+.gate-note { display: inline-flex; gap: 10px; align-items: baseline; }
+.gate-note::before { content: ""; width: 10px; height: 10px; background: var(--red); transform: rotate(45deg); flex: none; position: relative; top: -1px; }
+
+/* Lists */
+.checks { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 64px); }
+.checks ul { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+.checks li { padding: 14px 0 14px 34px; border-bottom: 1px solid var(--rule); position: relative; }
+.checks .prog li::before { content: ""; position: absolute; left: 4px; top: 19px; width: 14px; height: 8px; border-left: 2.5px solid var(--green); border-bottom: 2.5px solid var(--green); transform: rotate(-45deg); }
+.checks .agent li::before { content: ""; position: absolute; left: 4px; top: 21px; width: 16px; height: 0; border-top: 2.5px dashed var(--ink-soft); }
+.checks h3 { margin-bottom: 14px; }
+
+table.matrix { border-collapse: collapse; width: 100%; font-size: .95rem; margin-top: 8px; }
+.matrix th, .matrix td { text-align: left; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); }
+.matrix th { font-weight: 750; border-bottom: 1.5px solid var(--ink); }
+.matrix td.u { color: var(--ink-soft); }
+.scroll-x { overflow-x: auto; }
+
+footer { padding: 56px 0 72px; border-top: 1.5px solid var(--ink); font-size: .95rem; }
+footer .cols { display: grid; grid-template-columns: 2fr 1fr; gap: 32px; }
+footer p { margin: 0 0 10px; max-width: 48em; }
+footer .he { font-family: "Heebo", sans-serif; color: var(--red); }
+
+@media (max-width: 980px) {
+  .replay { grid-template-columns: 1fr; }
+  .card { position: static; min-height: 0; }
+  .route { grid-template-columns: repeat(4, 1fr); row-gap: 8px; }
+  .route li:nth-child(5) { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 760px) {
+  .mast nav a.opt { display: none; }
+  .hero { min-height: 0; display: block; }
+  .hero video, .hero .poster { position: relative; left: 0; width: 100%; height: auto; aspect-ratio: 16 / 10; object-position: 30% 50%; }
+  .hero::before { inset: 0 0 auto 0; height: 0; padding-top: 62.5%; background: linear-gradient(170deg, var(--paper) 0%, rgba(238,229,210,0) 38%), linear-gradient(0deg, var(--paper) 0%, rgba(238,229,210,0) 28%); }
+  .hero .wrap { display: block; padding-top: 8px; padding-bottom: 56px; }
+  .mast .wrap { padding-top: 14px; }
+  .two, .checks, footer .cols { grid-template-columns: 1fr; }
+  .route { grid-template-columns: 1fr; }
+  .route li, .route li + li { border-left: 0; padding-left: 0; border-bottom: 1px solid var(--rule); padding-bottom: 14px; display: grid; grid-template-columns: 52px 1fr; column-gap: 8px; }
+  .route li::before { grid-row: span 2; margin: 0; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="mast">
+  <div class="wrap">
+    <a class="mark" href="./" aria-label="Mifal home">Mifal <span class="he" lang="he" aria-hidden="true">מפעל</span></a>
+    <nav aria-label="Main">
+      <a class="opt" href="#built">The build</a>
+      <a class="opt" href="#route">How it works</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/romiluz13/mifal">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+<div class="hero">
+  <video autoplay muted loop playsinline preload="auto" poster="media/hero-poster.jpg" aria-hidden="true">
+    <source src="media/hero.webm" type="video/webm">
+    <source src="media/hero.mp4" type="video/mp4">
+  </video>
+  <div class="wrap">
+    <div class="hero-copy">
+      <h1>Agents say done. Mifal asks for the evidence.</h1>
+      <p class="lede">One engineering workflow for Claude Code, Codex, Droid, Pi and OpenCode, with a validator that refuses a brief, a receipt or a phase record that lacks its evidence.</p>
+      <div class="install" id="install-box">
+<pre id="install-cmd"><span class="p">$ </span>git clone https://github.com/romiluz13/mifal.git
+<span class="p">$ </span>cd mifal &amp;&amp; ./install.sh --dry-run
+<span class="p">$ </span>./install.sh &amp;&amp; mifal doctor</pre>
+        <div class="install-bar"><span>The dry run lists every write and changes nothing.</span><button type="button" id="copy">Copy</button></div>
+      </div>
+      <div class="cta">
+        <a class="btn ghost" href="https://github.com/romiluz13/mifal">Read the code on GitHub</a>
+        <a class="btn ghost" href="https://github.com/romiluz13/mifal/blob/main/docs/INSTALL.md">Install guide</a>
+      </div>
+      <p class="status"><strong>Alpha.</strong> macOS only, Python 3.9 or later, MIT licence.</p>
+    </div>
+  </div>
+</div>
+
+<section class="deep" id="built" aria-labelledby="built-h">
+  <div class="wrap">
+    <h2 id="built-h">It was built by its own team.</h2>
+    <p class="intro">A Claude lead, a Codex reviewer, a Claude researcher and an outside critic built Mifal 0.1 over 19 hours. The reviewer said HOLD five times, with 21 blocking findings across those rounds, and all were closed before this public release. Every mark below is an event from the build log. Select one to read it.</p>
+    <div class="replay">
+      <div>
+        <div class="scroller"><svg id="timeline" role="group" aria-label="Build timeline, 19 to 20 October 2026"></svg></div>
+        <div class="controls">
+          <button type="button" id="play">Replay</button>
+          <input type="range" id="scrub" min="0" max="1000" value="1000" aria-label="Move through the build">
+          <span class="clock" id="clock" aria-live="off"></span>
+        </div>
+        <div class="tally" aria-live="polite">
+          <span><b id="t-found">21</b>blocking findings</span>
+          <span><b id="t-rounds">7</b>review rounds</span>
+          <span class="open"><b id="t-open">0</b>open at release</span>
+        </div>
+      </div>
+      <aside class="card" id="card" aria-live="polite"></aside>
+    </div>
+  </div>
+</section>
+
+<section id="gate" aria-labelledby="gate-h">
+  <div class="wrap two">
+    <div>
+      <h2 id="gate-h">A gate that says no.</h2>
+      <p><code>validate_contracts.py</code> checks a brief before it is sent, a receipt before it is accepted, and a phase record before the next phase starts. A record missing its evidence is refused, and the refusal names the fix.</p>
+      <p>The Guide tells every agent to run it at each gate. Whether it does is up to the agent. On a team, the team lead skill has the lead run it on every return before accepting the work.</p>
+    </div>
+    <div class="term" role="img" aria-label="Terminal: the validator refuses a brief that has no Done means section and no Workflow section">
+      <div class="term-top"><i></i><i></i><i></i></div>
+<pre><span class="cmd">$ python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py \
+    brief .team/tasks/7.md --matt</span>
+<span class="err">error:</span> .team/tasks/7.md: missing section '## Done means'; the
+  brief contract requires: Why, Outcome, Done means, Stop rule
+<span class="err">error:</span> .team/tasks/7.md: missing '## Workflow' for the Matt check;
+  add one before '## Return', e.g.:
+  <span class="dim">## Workflow
+  Methodology: matt
+  Executor: kai
+  Route: build
+  Phase: implement
+  Next gate: the slice's tests pass
+  ...</span>
+<span class="dim">$ echo $?</span>
+1</pre>
+    </div>
+  </div>
+</section>
+
+<section class="deep" id="route" aria-labelledby="route-h">
+  <div class="wrap">
+    <h2 id="route-h">One route, in order.</h2>
+    <p class="intro">Each agent's rules file gets the same Guide. It loads Matt Pocock's engineering workflow before any engineering request. A build that spans several sessions runs through these phases, with a gate between each.</p>
+    <ol class="route">
+      <li><h3>Scope</h3><p>Name the work and pick its route.</p></li>
+      <li><h3>Grill</h3><p>A relentless interview until the plan holds.</p></li>
+      <li><h3>Spec</h3><p>Write down what done means.</p></li>
+      <li><h3>Tickets</h3><p>Thin vertical slices with their blocking edges.</p></li>
+      <li><h3>Implement</h3><p>Slice by slice, tests first.</p></li>
+      <li><h3>Review</h3><p>Standards and spec, by an agent that did not write it.</p></li>
+      <li><h3>Retro</h3><p>What changes next time.</p></li>
+    </ol>
+    <p class="route-note"><span class="gate-note">A build that fits one session goes from the grill straight to implement, test first, then review. Research, planning, debugging and review requests take shorter routes. For a team, the team lead skill briefs agents in Herdr panes, checks their receipts and sends work to a reviewer before accepting it.</span></p>
+  </div>
+</section>
+
+<section id="install" aria-labelledby="install-h">
+  <div class="wrap two">
+    <div>
+      <h2 id="install-h">Install it, check it, take it out.</h2>
+      <p>This is a real run of Mifal 0.1.1 in a disposable home folder. The install writes only what the dry run listed. <code>mifal doctor</code> checks the wiring: every rules file carries the Guide, and the 39 skills are in place.</p>
+      <p><code>mifal uninstall</code> removes every file, link and block Mifal wrote, restores what it moved aside, and keeps any file you edited. Herdr stays installed.</p>
+      <p class="hint">The final comparison is against a snapshot of the home folder taken before the install. It leaves out the working folder holding the clone and the .cache and .npm caches, and Herdr was already installed.</p>
+      <p><a href="https://github.com/romiluz13/mifal/blob/main/docs/INSTALL.md">Everything the install writes</a></p>
+    </div>
+    <div class="term">
+      <div class="term-top"><i></i><i></i><i></i></div>
+      <video controls muted playsinline preload="none" poster="media/install-run-poster.jpg" aria-label="Recorded terminal run: dry run, install, doctor and uninstall">
+        <source src="media/install-run.mp4" type="video/mp4">
+      </video>
+    </div>
+  </div>
+</section>
+
+<section class="deep" id="trust" aria-labelledby="trust-h">
+  <div class="wrap">
+    <h2 id="trust-h">What is checked, and what is not.</h2>
+    <p class="intro">A program can refuse a record. It cannot make an agent write one. Mifal keeps that line visible.</p>
+    <div class="checks">
+      <div class="prog">
+        <h3>Checked by a program, every time it runs</h3>
+        <ul>
+          <li>What the installer, update and uninstall write, what they keep, and how they roll back, with the Manifest as the record.</li>
+          <li>The install's files, links and blocks, the validator's own self-check, Herdr, and the agent-browser CLI, through <code>mifal doctor</code>.</li>
+          <li>A brief, a receipt or a phase record, when the agent or the lead runs the validator.</li>
+        </ul>
+      </div>
+      <div class="agent">
+        <h3>Relies on the agent following the Guide</h3>
+        <ul>
+          <li>Reading the engineering workflow and loading the skill for each phase.</li>
+          <li>Running the validator at each gate, and asking you before cutting a step.</li>
+          <li>Reporting only what its evidence shows. Treat a session's claims as claims until you see the evidence they cite.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="status" aria-labelledby="status-h">
+  <div class="wrap two">
+    <div>
+      <h2 id="status-h">Alpha, and honest about it.</h2>
+      <p>The installer, update, uninstall, doctor and validator are covered by tests on Python 3.9 and 3.13 on macOS. A live check with each agent fills a cell below only once it is recorded: a first session that quotes the Guide and lists Mifal's skills, and a lead that dispatches a task to that agent through Herdr and receives its reply.</p>
+      <p>Linux and Windows are not supported in this release.</p>
+    </div>
+    <div class="scroll-x">
+      <table class="matrix">
+        <thead><tr><th scope="col">macOS</th><th scope="col">Live check</th></tr></thead>
+        <tbody>
+          <tr><td>Claude Code</td><td class="u">Not yet recorded</td></tr>
+          <tr><td>Codex</td><td class="u">Not yet recorded</td></tr>
+          <tr><td>Droid</td><td class="u">Not yet recorded</td></tr>
+          <tr><td>Pi</td><td class="u">Not yet recorded</td></tr>
+          <tr><td>OpenCode</td><td class="u">Not yet recorded</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap cols">
+    <div>
+      <p><span class="he" lang="he">מפעל</span> (mifal) is Hebrew for factory.</p>
+      <p>Mifal ships the work of others under their licences, recorded per file: Matt Pocock's skills, DDD, Superpowers, agent-browser, Anthropic's frontend-design, Herdr's skill, Impeccable and LottieFiles motion-design. The <a href="https://github.com/romiluz13/mifal/blob/main/NOTICE">NOTICE</a> lists them. Mifal itself is MIT.</p>
+      <p>The hero film was generated with Higgsfield. Everything else on this page is drawn from the build record or recorded from a real run.</p>
+    </div>
+    <div>
+      <p><a href="https://github.com/romiluz13/mifal">Source on GitHub</a></p>
+      <p><a href="https://github.com/romiluz13/mifal/blob/main/docs/TRUST.md">What Mifal checks</a></p>
+      <p><a href="https://github.com/romiluz13/mifal/blob/main/MAINTAINING.md">Maintaining Mifal</a></p>
+      <p><a href="https://github.com/romiluz13/mifal/issues">Report a problem</a></p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const copy = document.getElementById("copy");
+  copy.addEventListener("click", async () => {
+    const text = document.getElementById("install-cmd").innerText.replace(/^\$ /gm, "");
+    try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; }
+    catch { copy.textContent = "Select and copy"; }
+    setTimeout(() => (copy.textContent = "Copy"), 2000);
+  });
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { const v = document.querySelector(".hero video"); v.removeAttribute("autoplay"); v.pause(); }
+
+  const NS = "http://www.w3.org/2000/svg";
+  const RED = "#C2362B", GREEN = "#2E7A4C", INK = "#1F2A55", SOFT = "#4F5A7C", RULE = "#C7BB9F", PAPER = "#E4D8BF";
+  const LANES = [
+    { id: "opus-cto", name: "Lead", who: "opus-cto, Claude" },
+    { id: "sol-reviewer", name: "Reviewer", who: "sol-reviewer, Codex" },
+    { id: "haiku-researcher", name: "Researcher", who: "haiku-researcher, Claude" },
+    { id: "mifal-reviewer", name: "Outside critic", who: "mifal-reviewer, Claude" },
+  ];
+  const HOLD_TEXT = {
+    "2": "Plan review. Seven gaps in the design, among them writing a rules file the agent does not read, no journal to undo an interrupted install, and overwriting a file you had edited.",
+    "2.2": "Plan re-review. Four more: an adopted rules file that would outlive uninstall and keep hiding the original, symlinked skill files, OpenCode's config folders, and no recovery if an update failed after installing but before advancing the clone.",
+    "4.1": "Code review of the installer. Eight defects, including an edit lost while an update waited for approval, and a doctor that passed when Codex was not reading the Guide.",
+    "4.2": "Recheck of the fixes. Rollback could delete a file it had never created.",
+    "4.4": "Review of 0.1.1. A maintainer command followed a symlink and overwrote a file outside the repo. The fix landed 15 minutes later.",
+  };
+  const CLEAR_TEXT = {
+    "4.3": "Recheck of 0.1.0 cleared it: no open blocking finding.",
+    "4.5": "Recheck of 0.1.1 cleared it: the symlink fix holds.",
+  };
+  const W = 1000, X0 = 196, X1 = 984, TOP = 36, LANE_H = 96;
+  const H = TOP + LANE_H * LANES.length + 26;
+  const laneY = Object.fromEntries(LANES.map((l, i) => [l.id, TOP + 38 + i * LANE_H]));
+  const svg = document.getElementById("timeline");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const el = (tag, attrs, parent = svg) => {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    parent.appendChild(n);
+    return n;
+  };
+  const fmt = (t) => {
+    const d = new Date(t), p = (n) => String(n).padStart(2, "0");
+    return `${d.getUTCDate()} Oct, ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} UTC`;
+  };
+
+  fetch("media/events.json").then((r) => r.json()).then(({ events }) => {
+    events.forEach((e) => (e.t = Date.parse(e.at)));
+    events.sort((a, b) => a.t - b.t);
+    const times = [...new Set(events.map((e) => e.t))].sort((a, b) => a - b);
+    const GAP = 50 * 60e3, BREAK = 30, MINW = 30;
+    const segs = [];
+    let start = times[0];
+    for (let i = 1; i < times.length; i++) if (times[i] - times[i - 1] > GAP) { segs.push({ from: start, to: times[i - 1] }); start = times[i]; }
+    segs.push({ from: start, to: times[times.length - 1] });
+    const active = segs.reduce((s, g) => s + (g.to - g.from), 0);
+    const pxPerMs = (X1 - X0 - BREAK * (segs.length - 1) - MINW * segs.length) / active;
+    const breaks = [];
+    let cur = X0;
+    segs.forEach((g, i) => {
+      g.x = cur + MINW / 2; cur += MINW + (g.to - g.from) * pxPerMs;
+      if (i < segs.length - 1) { breaks.push({ x: cur, gap: segs[i + 1].from - g.to }); cur += BREAK; }
+    });
+    const xOf = (t) => {
+      for (const [i, g] of segs.entries()) {
+        if (t <= g.to) return t >= g.from ? g.x + (t - g.from) * pxPerMs : breaks[i - 1].x + BREAK / 2;
+      }
+      return X1;
+    };
+
+    for (const l of LANES) {
+      const y = laneY[l.id];
+      el("line", { x1: X0 - 6, x2: X1, y1: y, y2: y, stroke: RULE, "stroke-width": 1.5 });
+      el("text", { x: 0, y: y - 4, class: "lane-name" }).textContent = l.name;
+      el("text", { x: 0, y: y + 18, class: "lane-who" }).textContent = l.who;
+    }
+    for (const b of breaks) {
+      el("rect", { x: b.x + 4, y: TOP, width: BREAK - 8, height: LANE_H * LANES.length, fill: PAPER });
+      for (const l of LANES) {
+        const y = laneY[l.id];
+        el("line", { x1: b.x + 9, y1: y + 7, x2: b.x + 14, y2: y - 7, stroke: SOFT, "stroke-width": 1.5 });
+        el("line", { x1: b.x + 16, y1: y + 7, x2: b.x + 21, y2: y - 7, stroke: SOFT, "stroke-width": 1.5 });
+      }
+      const h = b.gap / 3600e3;
+      el("text", { x: b.x + BREAK / 2, y: TOP + 6, "text-anchor": "middle", "font-size": 13.5, fill: SOFT, "font-family": "IBM Plex Mono, monospace" })
+        .textContent = `${h < 1.5 ? h.toFixed(1) : Math.round(h)}h`;
+    }
+
+    const marks = [];
+    const holdOffset = { "2.2": 1, "4.2": 1 };
+    for (const e of events) {
+      if (e.kind === "return" && e.lane !== "haiku-researcher") continue;
+      const x = xOf(e.t), lane = e.kind === "debate" ? "mifal-reviewer" : e.lane, y = laneY[lane];
+      const g = el("g", { class: "ev", tabindex: 0, role: "button" });
+      let hit = { x: x - 9, y: y - 14, width: 18, height: 28 };
+      if (e.kind === "brief") {
+        const y0 = laneY["opus-cto"];
+        el("line", { x1: x, y1: y0, x2: x, y2: y - 9, stroke: INK, "stroke-width": 1, opacity: .45 }, g);
+        el("path", { d: `M${x - 5} ${y - 11}h10l-5 9z`, fill: INK }, g);
+        hit = { x: x - 7, y: y - 16, width: 14, height: 20 };
+      } else if (e.kind === "commit") {
+        el("line", { x1: x, y1: y - 9, x2: x, y2: y + 9, stroke: INK, "stroke-width": 2 }, g);
+        hit = { x: x - 4, y: y - 12, width: 8, height: 24 };
+      } else if (e.kind === "push") {
+        const reviewed = e.sha !== "d231b30";
+        el("rect", { x: x - 7, y: y - 7, width: 14, height: 14, fill: reviewed ? INK : "#EEE5D2", stroke: INK, "stroke-width": 2 }, g);
+        el("text", { x, y: y - 14, "text-anchor": "middle", "font-size": 13, fill: INK, "font-family": "IBM Plex Mono, monospace" }, g).textContent = e.sha;
+      } else if (e.kind === "hold") {
+        const yy = y + 18 + (holdOffset[e.task] ? 34 : 0);
+        el("line", { x1: x, y1: y, x2: x, y2: yy, stroke: RED, "stroke-width": 1.5 }, g);
+        el("rect", { x: x - 34, y: yy, width: 68, height: 26, fill: RED, rx: 2 }, g);
+        el("text", { x, y: yy + 18, "text-anchor": "middle", "font-size": 14.5, "font-weight": 750, fill: "#FFF7EC" }, g).textContent = `HOLD ${e.blocking}`;
+        hit = { x: x - 32, y: y - 4, width: 64, height: yy - y + 30 };
+      } else if (e.kind === "clear") {
+        el("circle", { cx: x, cy: y + 30, r: 12, fill: GREEN }, g);
+        el("path", { d: `M${x - 5.5} ${y + 30}l3.5 4 7-8`, fill: "none", stroke: "#FFF7EC", "stroke-width": 2.2 }, g);
+        hit = { x: x - 14, y: y - 4, width: 28, height: 48 };
+      } else if (e.kind === "return") {
+        el("circle", { cx: x, cy: y, r: 5, fill: INK }, g);
+      } else if (e.kind === "debate") {
+        const lead = e.file.includes("lead") && !e.file.includes("HANDOFF");
+        el("path", { d: `M${x} ${y - 8}l8 8-8 8-8-8z`, fill: lead ? "#EEE5D2" : INK, stroke: INK, "stroke-width": 1.8 }, g);
+      }
+      el("rect", { ...hit, class: "hit" }, g);
+      g.setAttribute("aria-label", title(e).replace(/\s+/g, " "));
+      g.addEventListener("click", () => select(e));
+      g.addEventListener("keydown", (k) => { if (k.key === "Enter" || k.key === " ") { k.preventDefault(); select(e); } });
+      marks.push({ e, g, x });
+    }
+    const headLine = el("line", { x1: X1, x2: X1, y1: TOP - 6, y2: H - 8, stroke: INK, "stroke-width": 1, "stroke-dasharray": "3 4", opacity: 0 });
+
+    function title(e) {
+      const who = (LANES.find((l) => l.id === e.lane) || {}).who || e.lane;
+      switch (e.kind) {
+        case "hold": return `HOLD: ${e.blocking} blocking finding${e.blocking > 1 ? "s" : ""}`;
+        case "clear": return "Review cleared";
+        case "brief": return `Brief sent to ${who.split(",")[0]}: task ${e.task}`;
+        case "commit": return `Commit ${e.sha}`;
+        case "push": return `Pushed ${e.sha} to GitHub`;
+        case "return": return `Researcher returned task ${e.task}`;
+        case "debate": return e.file.includes("HANDOFF") ? "Pre-publish audit handed to the lead" : `Plan debate: ${e.file.replace(".md", "")}`;
+      }
+      return e.kind;
+    }
+    function body(e) {
+      if (e.kind === "hold") return HOLD_TEXT[e.task] || "";
+      if (e.kind === "clear") return CLEAR_TEXT[e.task] || "";
+      if (e.kind === "commit") return `${e.subject}. A commit on the build branch; the public history is squashed into release commits.`;
+      if (e.kind === "push") return {
+        f71698a: "0.1.0, pushed to the then-private repo while its final recheck was still running. Recheck 4.3 cleared that tree five minutes later.",
+        d231b30: "Pushed without a review first. Review 4.4 followed and found a blocking problem.",
+        "74cd732": "0.1.1, pushed after recheck 4.5 cleared it.",
+      }[e.sha] || "";
+      if (e.kind === "brief") return "The lead validates the brief before it is sent.";
+      if (e.kind === "debate") return "The lead and an outside critic argued the 0.2 plan to agreement in four rounds.";
+      if (e.kind === "return") return "The researcher's return, checked against its receipt contract.";
+      return "";
+    }
+    const card = document.getElementById("card");
+    let selected = null;
+    function select(e) {
+      selected = e;
+      marks.forEach((m) => m.g.classList.toggle("sel", m.e === e));
+      const cls = e.kind === "hold" ? "hold" : e.kind === "clear" ? "clear" : "";
+      const who = (LANES.find((l) => l.id === (e.kind === "debate" ? "mifal-reviewer" : e.lane)) || {}).who || "";
+      const src = e.src.startsWith("git log") ? "git log of the build branch" : e.src.startsWith("state.md") ? `the build record, line ${e.src.split(":")[1]}` : e.src;
+      const link = e.kind === "push" ? `<p><a href="https://github.com/romiluz13/mifal/commit/${e.sha}">See ${e.sha} on GitHub</a></p>` : "";
+      card.innerHTML = `<p class="kind ${cls}"></p><p class="b"></p>${link}<dl><dt>When</dt><dd>${fmt(e.t)}</dd><dt>Who</dt><dd></dd><dt>Source</dt><dd></dd></dl>`;
+      card.querySelector(".kind").textContent = title(e);
+      card.querySelector(".b").textContent = body(e);
+      const dds = card.querySelectorAll("dd");
+      dds[1].textContent = who; dds[2].textContent = src;
+    }
+
+    const scrub = document.getElementById("scrub"), clock = document.getElementById("clock");
+    const found = document.getElementById("t-found"), rounds = document.getElementById("t-rounds"), open = document.getElementById("t-open");
+    function draw(k) {
+      const head = X0 + (X1 - X0) * k;
+      let f = 0, r = 0, last = times[0];
+      for (const m of marks) {
+        const on = m.x <= head + .5;
+        m.g.style.opacity = on ? 1 : 0.08;
+        m.g.style.pointerEvents = on ? "" : "none";
+        if (on) { last = Math.max(last, m.e.t); if (m.e.kind === "hold") { f += m.e.blocking; r++; } if (m.e.kind === "clear") r++; }
+      }
+      headLine.setAttribute("x1", head); headLine.setAttribute("x2", head);
+      headLine.setAttribute("opacity", k < 1 ? .8 : 0);
+      found.textContent = f; rounds.textContent = r;
+      open.textContent = k < 1 ? "–" : "0";
+      clock.textContent = fmt(last);
+      scrub.value = Math.round(k * 1000);
+    }
+    scrub.addEventListener("input", () => draw(scrub.value / 1000));
+    let raf = null;
+    function play() {
+      cancelAnimationFrame(raf);
+      const t0 = performance.now(), dur = 7000;
+      const step = (now) => { const k = Math.min((now - t0) / dur, 1); draw(k); if (k < 1) raf = requestAnimationFrame(step); };
+      raf = requestAnimationFrame(step);
+    }
+    document.getElementById("play").addEventListener("click", play);
+    scrub.addEventListener("pointerdown", () => cancelAnimationFrame(raf));
+    select(events.find((e) => e.kind === "hold" && e.task === "4.4"));
+    draw(1);
+    if (!reduce && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some((x) => x.isIntersecting)) { io.disconnect(); play(); }
+      }, { threshold: 0.4 });
+      io.observe(svg);
+    }
+  }).catch(() => {
+    document.getElementById("card").textContent = "The timeline could not load. The same record is in the README's mission replay.";
+  });
+})();
+</script>
+</body>
+</html>

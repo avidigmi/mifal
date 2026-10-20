@@ -1,0 +1,28 @@
+name: Problem report
+description: Something Mifal installed, checked or removed did not do what it should
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `mifal doctor`
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Mifal, macOS and Python versions
+      placeholder: "Mifal 0.1.2, macOS 15.6, Python 3.9.6"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest steps, ideally in a disposable home folder. Leave out tokens, credentials and settings files.

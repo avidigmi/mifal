@@ -52,7 +52,13 @@ DENIED = {
     "040fce9abddf536b", "35bc2a33cb1d075d",
 }
 # The author's name and handle may appear only on a credit line of a credit file, and in the project's own
-# repository URL where a user is told how to clone it.
+# repository URL where a user is told how to clone it. The project's own repository and website URLs may
+# appear in any file: they are how a reader reaches the project, and they name no folder on anyone's machine.
+# Only the complete https URLs of this owner's mifal repository and site qualify, so a path, another
+# repository or a lookalike host still counts as a leak. The owner is the one the README tells users to clone.
+OWNER = re.search(r"git clone https://github\.com/([\w-]+)/mifal\.git", (REPO / "README.md").read_text()).group(1)
+PROJECT_URL = re.compile(r"(?<![\w.@/-])https://(?:github\.com/" + re.escape(OWNER) + r"/mifal|"
+                         + re.escape(OWNER) + r"\.github\.io/mifal)(?=\.git(?![\w.-])|[/#?]|[^\w.-]|$)")
 CREDIT_TOKENS = {"1a0806c20104d346", "776f49007a01981a", "7ff8d3807b844b13"}
 CREDIT_FILES = {"LICENSE", "NOTICE", "third_party/provenance.json", "skills/team-lead/SKILL.md",
                 "lib/mifal/update.py", "README.md"}
@@ -173,6 +179,7 @@ class Closure(unittest.TestCase):
 
 
 def denied(rel, line):
+    line = PROJECT_URL.sub("", line)
     found = {hashlib.sha256(t.encode()).hexdigest()[:16] for t in TOKEN.findall(line.lower())} & DENIED
     if found and found <= CREDIT_TOKENS and rel in CREDIT_FILES and CREDIT_LINE.search(line):
         return set()
@@ -191,6 +198,13 @@ class Denylist(unittest.TestCase):
         self.assertTrue(denied("skills/tdd/SKILL.md", plant("frr /Hfref/ebz.vyhm/abgrf")))
         self.assertTrue(denied("skills/team-lead/SKILL.md", plant("nfx ebzvyhm13 svefg")))
         self.assertFalse(denied("LICENSE", plant("Pbclevtug (p) 2026 Ebz Vyhm")))
+        self.assertFalse(denied("SECURITY.md", plant("uggcf://tvguho.pbz/ebzvyhm13/zvsny/frphevgl")))
+        self.assertFalse(denied("site/index.html", plant("uggcf://ebzvyhm13.tvguho.vb/zvsny/")))
+        self.assertTrue(denied("site/index.html", plant("uggcf://tvguho.pbz/ebzvyhm13/zvsny ol ebzvyhm13")))
+        for leak in ("/Hfref/ebzvyhm13.tvguho.vb/zvsny/abgrf", "uggcf://tvguho.pbz/ebzvyhm13/zvsny-cevingr",
+                     "uggcf://ebzvyhm13.tvguho.vb/zvsny-cevingr/", "uggcf://abgtvguho.pbz/ebzvyhm13/zvsny",
+                     "ebzvyhm13.tvguho.vb/zvsny", "uggcf://tvguho.pbz/ebzvyhm13/zvsny.tvg.onx"):
+            self.assertTrue(denied("site/index.html", plant(leak)), plant(leak))
 
 
 class Provenance(unittest.TestCase):

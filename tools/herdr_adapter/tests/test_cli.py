@@ -519,6 +519,20 @@ class RequestDeadlineTest(unittest.TestCase):
             finally:
                 peer.close()
 
+    def test_deadline_expiring_inside_a_read_is_reported_as_the_deadline(self):
+        # Python 3.9's socket.timeout is not a TimeoutError; a stall after the
+        # first byte makes the deadline land inside recv on every run.
+        with tempfile.TemporaryDirectory(prefix="stall-", dir="/tmp") as directory:
+            peer = TricklePeer(directory, delay=1.0)
+            try:
+                client = self.client(peer.path, 0.3)
+                with self.assertRaises(Exception) as caught:
+                    client.request("ping", {})
+                self.assertEqual(getattr(caught.exception, "code", None), "transport_error")
+                self.assertIn("total request deadline", str(caught.exception))
+            finally:
+                peer.close()
+
     def test_fast_pong_still_returns_within_the_deadline(self):
         with tempfile.TemporaryDirectory(prefix="fast-", dir="/tmp") as directory:
             peer = Peer(directory)
