@@ -1,5 +1,6 @@
 """mifal doctor: prove an install is healthy. Read-only: it writes nothing, uses no network, runs no harness,
-and opens no settings, token or credential file; it reads Mifal's own files and the rules files it wired."""
+and opens no settings, token or credential file itself (`herdr status` loads Herdr's own config); it reads
+Mifal's own files and the rules files it wired."""
 from __future__ import annotations
 
 import hashlib

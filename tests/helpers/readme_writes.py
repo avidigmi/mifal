@@ -1,6 +1,6 @@
-"""The README's "What gets written" table, built from a dry run and the install it previews.
+"""docs/INSTALL.md's "What gets written" table, built from a dry run and the install it previews.
 
-    python3 tests/helpers/readme_writes.py   rewrites the table in README.md from a fresh disposable HOME
+    python3 tests/helpers/readme_writes.py   rewrites the table in docs/INSTALL.md from a fresh disposable HOME
 """
 import re
 import sys
@@ -48,7 +48,7 @@ def section(readme: str) -> str:
 
 def replaced(readme: str, table_text: str) -> str:
     if not SECTION.search(readme):
-        raise SystemExit("README.md has no writes markers")
+        raise SystemExit("docs/INSTALL.md has no writes markers")
     return SECTION.sub(lambda m: f"{BEGIN}\n{table_text}\n{END}", readme, count=1)
 
 
@@ -62,10 +62,10 @@ def main():
         generated = case.generated_table()
     finally:
         case.doCleanups()
-    readme = Path(__file__).resolve().parents[2] / "README.md"
+    readme = Path(__file__).resolve().parents[2] / "docs" / "INSTALL.md"
     text = readme.read_text()
     readme.write_text(replaced(text, generated))
-    print("README.md writes table regenerated")
+    print("docs/INSTALL.md writes table regenerated")
 
 
 if __name__ == "__main__":

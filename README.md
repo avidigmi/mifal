@@ -1,8 +1,30 @@
 # Mifal
 
-Mifal is an agentic engineering factory you install into the coding agents you already use. It gives Claude Code, Codex, Droid, Pi and OpenCode one shared methodology (Matt Pocock's skills, run as an ordered workflow with evidence at every gate), a team lead that can coordinate several agents through [Herdr](https://herdr.dev), and a contract validator that checks the briefs, receipts and phase records the agents write.
+**One engineering methodology for five coding agents on your Mac, with gates that refuse work that has no evidence.**
 
-Everything installs into your home folder, every write is previewed first and recorded, and `mifal uninstall` puts your files back.
+[![tests](https://github.com/romiluz13/mifal/actions/workflows/test.yml/badge.svg)](https://github.com/romiluz13/mifal/actions/workflows/test.yml) ![status: alpha](https://img.shields.io/badge/status-alpha-C2362B) ![platform: macOS](https://img.shields.io/badge/platform-macOS-1C1B19) [![license: MIT](https://img.shields.io/badge/license-MIT-2E7A4C)](LICENSE)
+
+![Install, doctor and uninstall in a disposable home folder: every write previewed, 16 doctor checks passed, and the home folder matching its pre-install snapshot after uninstall](docs/assets/install-doctor-uninstall.gif)
+
+<sub>A real run of Mifal 0.1.1 in a disposable home folder on macOS. The last command compares that folder with a snapshot taken before the install; the snapshot leaves out the working folder holding the clone and the <code>.cache</code> and <code>.npm</code> caches, and Herdr was already installed.</sub>
+
+Claude Code, Codex, Droid, Pi and OpenCode each read their own rules file, and each will tell you "done" whether or not it has proof. Mifal installs one Guide into all five, the same 39 skills (Matt Pocock's engineering skills run as ordered phases, plus DDD, review and team leading), and a contract validator that refuses a brief, receipt or phase record that lacks its evidence. Every write is previewed first, and uninstall removes what Mifal wrote while keeping any file you edited.
+
+## What you get
+
+- 🧭 **One workflow, five agents.** Each agent's rules file gets the same Guide, which loads `engineering-workflow` before any engineering request. A multi-session build runs scope → grill → spec → tickets → implement → review → retro in order; research, planning, debugging and review take shorter routes. `mifal doctor` checks the wiring: each agent's rules file carries the Guide, and the 39 skills are in place.
+- 🛡️ **Gates that refuse.** The Guide has the agent run `validate_contracts.py` before every dispatch, review and acceptance. A record without its evidence is refused, and the refusal prints the fix:
+
+  ```text
+  $ python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py brief .team/tasks/7.md --matt
+  error: .team/tasks/7.md: missing section '## Done means'; the brief contract requires: Why, Outcome, Done means, Stop rule
+  error: .team/tasks/7.md: missing '## Workflow' for the Matt check; add one before '## Return', e.g.:
+    ## Workflow
+    Methodology: matt
+    ...
+  ```
+- ↩️ **Every write previewed, every write reversible.** `--dry-run` lists every write before anything changes. Your own rules files keep everything you wrote; Mifal adds one Marked block. `mifal uninstall` removes every file, link and block Mifal wrote and restores what it moved aside, keeping any file you edited; Herdr stays installed.
+- 👥 **A team, not a single chat.** The team lead skill has the lead brief agents in [Herdr](https://herdr.dev) panes, check their receipts with the validator, and send their work to a reviewer before accepting it, as in the replay above.
 
 ## Quickstart
 
@@ -15,69 +37,41 @@ cd mifal
 ./install.sh
 ```
 
-`./install.sh --dry-run` lists every file, link and Marked block the install would write, and changes nothing. The install puts the `mifal` command in `~/.local/bin`; if that folder is not on your PATH, the installer prints the line to add to `~/.zprofile`. Then check the install:
+The install puts the `mifal` command in `~/.local/bin`; if that folder is not on your PATH, the installer prints the line to add to `~/.zprofile`. Then check the install:
 
 ```sh
 mifal doctor
 ```
 
-The doctor is read-only: it writes nothing, uses no network, runs none of your agents and opens no settings or credential file. Each failure it reports comes with its fix.
+Start a session in any agent Mifal wired, in a project folder, and ask for engineering work as you normally would. The agent scopes the request, asks whether you want the full workflow or a cut, and works phase by phase. For a team, start the session inside Herdr (`herdr`) and ask for one.
 
-## First steps
+## Built by its own team
 
-Start a session in any of the agents Mifal wired, in a project folder, and ask for engineering work as you normally would. The Guide makes the agent read the engineering workflow first: it scopes the request, asks whether you want the full workflow or a cut, and works phase by phase, recording evidence. To coordinate several agents, start the session inside Herdr (`herdr`) and ask for a team; the team lead skill takes it from there.
+<img src="docs/assets/mission-replay.gif" width="480" alt="Mission replay: the lead, a reviewer, a researcher and an outside critic built Mifal over 19 hours; the reviewer said HOLD five times, with 21 blocking findings across those rounds, all closed before release">
 
-## What gets written
+Mifal 0.1 was built by a Mifal team: a Claude lead, a Codex reviewer, a Claude researcher, and an outside critic for the final plan. Every mark is an event from the build record and `git log`. The reviewer said HOLD five times, with 21 blocking findings across those rounds (a few were what remained of an earlier finding), and all were closed before release.
 
-Mifal writes only into your home folder, and only where the dry run says. On a machine with all five agents detected:
+## How it works
 
-<!-- writes:begin -->
-| Where | What Mifal writes |
-|---|---|
-| `~/.agents/mifal/` | The engine: the `mifal` command and its library, the experimental Herdr adapter and tools, the Guide (`AGENTS.md`) and the Manifest; 44 files |
-| `~/.agents/skills/` | 39 skills, 241 files |
-| `~/.local/bin/mifal` | A link to the engine's `mifal` command |
-| `~/.claude/CLAUDE.md` | A Marked block that imports the Guide |
-| `~/.claude/skills/` | 39 links, one per skill, into `~/.agents/skills/` |
-| `~/.codex/AGENTS.md` | A Marked block holding the Guide |
-| `~/.factory/AGENTS.md` | A Marked block holding the Guide |
-| `~/.pi/agent/AGENTS.md` | A Marked block holding the Guide |
-| `~/.config/opencode/AGENTS.md` | A Marked block holding the Guide |
-<!-- writes:end -->
-
-An agent is wired when its program is on your PATH or its home folder exists; `./install.sh --harness codex --harness pi` wires exactly the ones you name. Folders Mifal creates are recorded and removed on uninstall once they are empty.
-
-Rules files are never replaced. Mifal adds only its own Marked block, and leaves the rest of the file as you wrote it. When an agent reads a file other than the one Mifal would write (an `AGENTS.override.md`, or OpenCode or Pi reading a `CLAUDE.md`), Mifal skips that agent and tells you which file it reads now, rather than hiding your file.
-
-An existing skill or file in Mifal's way is moved to `~/.agents/mifal/backup/` and restored on uninstall. A file you edit after the install is yours: a reinstall stops before overwriting it, and `--overwrite-edits` saves a copy to `~/.agents/mifal-saved/` first.
-
-## Update and uninstall
-
-```sh
-mifal update
-mifal uninstall --dry-run
-mifal uninstall
+```mermaid
+flowchart LR
+  ask[Your request] --> guide["Mifal Guide<br/>(a block in each agent's rules file)"]
+  guide --> ew[engineering-workflow]
+  ew --> am[Ask Matt selects the phase skill]
+  am --> phase["build route: scope → grill → spec<br/>→ tickets → implement → review → retro"]
+  phase -->|the agent runs it before each<br/>dispatch, review, acceptance| gate{validate_contracts.py}
+  gate -->|refused, with the fix| phase
+  gate -->|ok| phase
+  ew -.->|team request| lead[team-lead]
+  lead --> panes["Herdr panes:<br/>workers and a reviewer"]
+  panes -->|receipts| gate
 ```
 
-`mifal update` fetches in the clone you installed from, shows the incoming commits and the exact writes, and asks before it changes anything (`--yes` applies without asking). It installs exactly the revision you saw, and refuses a clone with uncommitted changes or one that is not a fast-forward of its upstream. An interrupted install or update is rolled back the next time you run `mifal` or the installer.
+Everything lives in your home folder: the engine in `~/.agents/mifal/`, the skills in `~/.agents/skills/`, and one Marked block per agent's rules file. [docs/INSTALL.md](docs/INSTALL.md) lists every write, and covers update and uninstall.
 
-`mifal uninstall` removes every file and link Mifal wrote and every Marked block it added, restores what it moved aside, and keeps anything you changed since, saying so. Herdr stays installed after uninstall, because other tools may use it. If Mifal installed it with Homebrew, remove it with:
+## Status
 
-```sh
-brew uninstall herdr
-```
-
-If Mifal installed it with Herdr's own script, uninstall prints the command for that route.
-
-## What is checked, and what relies on the agent
-
-Checked by a program, every time it runs:
-
-- the installer, `mifal update` and `mifal uninstall`: what they write, what they keep and how they roll back, with the Manifest as the record;
-- `mifal doctor`: the install's files, links and blocks, the validator's own selfcheck, the Ask Matt pin, Herdr, and the agent-browser CLI (which Mifal does not install);
-- the contract validator, `~/.agents/skills/team-lead/scripts/validate_contracts.py`: a brief, a receipt or a phase record passes or is refused, when the agent or the lead runs it.
-
-Relying on the agent following the Guide: that it reads the engineering workflow, loads the skill for each phase, runs the validator at each gate, asks you before cutting a step and reports only what its evidence shows. The validator can refuse a record; it cannot make an agent write one. Treat a session's claims as claims until you see the evidence they cite.
+**Alpha.** The installer, update, uninstall, doctor and validator are covered by tests on Python 3.9 and 3.13. What a program checks, and what still relies on the agent following the Guide, is spelled out in [docs/TRUST.md](docs/TRUST.md).
 
 ## Support
 
@@ -89,9 +83,11 @@ This matrix is provisional. A cell is filled only from a recorded live check: a 
 
 Linux and Windows are not supported in this release. Droid's rules file location is documented by Factory, not yet confirmed live.
 
-## Maintaining
+## Docs
 
-[`MAINTAINING.md`](MAINTAINING.md) says how upstream skill, Herdr and agent changes get into Mifal, how Mifal's changes go back upstream, and how a release reaches `mifal update`.
+- [docs/INSTALL.md](docs/INSTALL.md): what gets written, update and uninstall.
+- [docs/TRUST.md](docs/TRUST.md): what is checked by a program, and what relies on the agent.
+- [MAINTAINING.md](MAINTAINING.md): how upstream skill, Herdr and agent changes get into Mifal, and how Mifal's changes go back upstream.
 
 ## Credits
 

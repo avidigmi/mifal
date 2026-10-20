@@ -12,13 +12,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / "helpers"))
 import readme_writes  # noqa: E402
 
 README = REPO / "README.md"
+INSTALL = REPO / "docs" / "INSTALL.md"
+TRUST = REPO / "docs" / "TRUST.md"
 HARNESSES = ("claude", "codex", "droid", "pi", "opencode")
 SH = re.compile(r"(?ms)^```sh\n(.*?)^```")
 URL = re.compile(r"git clone (\S+)")
 
 
-def text():
-    return README.read_text(encoding="utf-8")
+def text(path=README):
+    return path.read_text(encoding="utf-8")
 
 
 class Readme(Sandbox):
@@ -32,12 +34,13 @@ class Readme(Sandbox):
         return readme_writes.table(self.home, planned)
 
     def test_the_writes_table_matches_a_dry_run_with_all_five_harnesses(self):
-        self.assertEqual(readme_writes.section(text()), self.generated_table(),
+        self.assertEqual(readme_writes.section(text(INSTALL)), self.generated_table(),
                          "regenerate it with: python3 tests/helpers/readme_writes.py")
 
     def test_every_command_runs_as_written_in_a_disposable_home(self):
-        blocks = SH.findall(text())
-        self.assertTrue(blocks)
+        blocks = SH.findall(text()) + SH.findall(text(INSTALL))
+        self.assertTrue(SH.findall(text()))
+        self.assertIn("mifal uninstall", "".join(SH.findall(text(INSTALL))))
         url = URL.search(text()).group(1)
         origin = self.root / "origin.git"
         env = dict(self.env(), GIT_CONFIG_NOSYSTEM="1")
@@ -55,11 +58,15 @@ class Readme(Sandbox):
         self.assertIn("doctor: ", result.stdout)
         self.assertNotRegex(result.stdout, r"(?m)^FAIL")
 
-    def test_nothing_personal_in_the_readme(self):
-        self.assertEqual([line for line in text().splitlines() if denied("README.md", line)], [])
+    def test_nothing_personal_in_the_readme_or_its_docs(self):
+        for path in (README, INSTALL, TRUST):
+            rel = str(path.relative_to(REPO))
+            self.assertEqual([line for line in text(path).splitlines() if denied(rel, line)], [], rel)
 
-    def test_the_readme_says_what_is_checked_by_a_program_and_what_relies_on_the_agent(self):
-        self.assertRegex(text(), r"(?m)^## What is checked, and what relies on the agent")
+    def test_the_readme_links_what_is_checked_by_a_program_and_what_relies_on_the_agent(self):
+        self.assertRegex(text(TRUST), r"(?m)^## What is checked, and what relies on the agent")
+        self.assertIn("(docs/TRUST.md)", text())
+        self.assertIn("(docs/INSTALL.md)", text())
 
     def test_the_support_matrix_is_provisional_and_every_cell_untested(self):
         matrix = re.search(r"(?ms)^## Support\n(.*?)^## ", text()).group(1)
@@ -69,8 +76,8 @@ class Readme(Sandbox):
         self.assertIn("provisional", matrix)
 
     def test_the_readme_says_herdr_stays_and_how_to_remove_it(self):
-        self.assertRegex(text(), r"Herdr stays installed")
-        self.assertIn("brew uninstall herdr", text())
+        self.assertRegex(text(INSTALL), r"Herdr stays installed")
+        self.assertIn("brew uninstall herdr", text(INSTALL))
 
 
 if __name__ == "__main__":
