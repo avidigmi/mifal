@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tarfile
@@ -14,8 +15,16 @@ from . import journal
 REPO_URL = "https://github.com/romiluz13/mifal.git"
 
 
+RELEASE_TAG = re.compile(r"^v([0-9]+)\.([0-9]+)\.([0-9]+)$", re.ASCII)
+TAGS = "refs/mifal/tags"
+
+
 class Refused(Exception):
     pass
+
+
+class Current(Exception):
+    """The install already contains the newest release; there is nothing to install."""
 
 
 def _git(clone, *args, check=True):
@@ -31,8 +40,29 @@ def manual_commands(source: dict) -> list:
     return [f"git clone {url} mifal", "cd mifal && ./install.sh"]
 
 
-def candidate(source: dict) -> tuple:
-    """(clone, upstream, candidate sha, clone HEAD) after fetching; refuses before any write."""
+def latest_release(clone, upstream):
+    """(tag, commit) of the highest vX.Y.Z release, or None. Only tags fetched into Mifal's own namespace count, and
+    only those on the recorded upstream branch whose VERSION is the tag, so a mistyped, off-branch, local or
+    foreign tag cannot become the release."""
+    found = []
+    for name in _git(clone, "for-each-ref", "--format=%(refname:strip=3)", TAGS).stdout.split():
+        m = RELEASE_TAG.match(name)
+        sha = _git(clone, "rev-parse", "--verify", "--quiet", f"{TAGS}/{name}^{{commit}}", check=False).stdout.strip()
+        if not m or not sha:
+            continue
+        if _git(clone, "merge-base", "--is-ancestor", sha, upstream, check=False).returncode != 0:
+            continue
+        if _git(clone, "show", f"{sha}:VERSION", check=False).stdout.strip() != name[1:]:
+            continue
+        found.append((tuple(map(int, m.groups())), name, sha))
+    return max(found)[1:] if found else None
+
+
+def candidate(source: dict, branch: bool = False) -> tuple:
+    """(clone, label, candidate sha, clone HEAD) after fetching; refuses before any write.
+
+    The candidate is the newest release tag, so a commit that is on the branch but not yet released is never offered.
+    A clone whose remote has no valid release tag, or an update run with --branch, follows its recorded upstream branch."""
     clone = Path(source["path"])
     upstream = source.get("upstream")
     if not upstream:
@@ -42,12 +72,22 @@ def candidate(source: dict) -> tuple:
         raise Refused(f"{clone} has uncommitted changes to tracked files; commit or stash them first.")
     remote = upstream.split("/", 1)[0]
     _git(clone, "fetch", "--quiet", remote)
-    sha = _git(clone, "rev-parse", upstream).stdout.strip()
+    _git(clone, "fetch", "--quiet", "--no-tags", "--prune", remote, f"+refs/tags/v*:{TAGS}/v*")
     head = _git(clone, "rev-parse", "HEAD").stdout.strip()
-    if _git(clone, "merge-base", "--is-ancestor", head, sha, check=False).returncode != 0:
-        raise Refused(f"{upstream} ({sha[:12]}) is not a fast-forward of the clone's HEAD ({head[:12]}): "
+    release = None if branch else latest_release(clone, upstream)
+    if release:
+        label, sha = f"release {release[0]}", release[1]
+        installed = source.get("revision")
+        if installed and installed != sha and _git(clone, "merge-base", "--is-ancestor", sha, installed,
+                                                   check=False).returncode == 0:
+            raise Current(label)
+    else:
+        label, sha = upstream, _git(clone, "rev-parse", upstream).stdout.strip()
+    is_ancestor = lambda old, new: _git(clone, "merge-base", "--is-ancestor", old, new, check=False).returncode == 0
+    if not (release and is_ancestor(sha, head)) and not is_ancestor(head, sha):
+        raise Refused(f"{label} ({sha[:12]}) is not a fast-forward of the clone's HEAD ({head[:12]}): "
                       "the clone has its own commits or upstream rewrote history. Nothing was changed.")
-    return clone, upstream, sha, head
+    return clone, label, sha, head
 
 
 def export(clone: Path, sha: str, into: Path) -> None:
@@ -77,7 +117,10 @@ def update(h, data, args, out) -> int:
             out(f"  {line}")
         return 1
     try:
-        clone, upstream, sha, head = candidate(source)
+        clone, upstream, sha, head = candidate(source, getattr(args, "branch", False))
+    except Current as e:
+        out(f"Mifal is up to date: the installed revision already includes {e}.")
+        return 0
     except Refused as e:
         out(f"mifal: {e}")
         return 1
