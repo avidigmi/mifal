@@ -60,6 +60,25 @@ The vendored `herdr` skill updates through `maint/upstream.py` like any other.
 | Pi | `$PI_CODING_AGENT_DIR/AGENTS.md` | `AGENTS.override.md`, then `AGENTS.md`, `AGENTS.MD`, `CLAUDE.md`, `CLAUDE.MD` | native |
 | OpenCode | `AGENTS.md` in its config folder | `~/.claude/CLAUDE.md` is its fallback when its own file is absent, unless `OPENCODE_DISABLE_CLAUDE_CODE` or `..._PROMPT` is `true` or `1` | native |
 
+## The routine
+
+One maintainer, several agents. Production is `main`; everything else is short-lived.
+
+1. **Dogfood first.** Try a change in your own setup. A change that proves itself there becomes a pull request here; nothing flows back automatically.
+2. **One branch, one worktree, one writer per task.** `git worktree add ../.worktrees/mifal/<task> -b agent/<who>-<topic> origin/main` (run `git fetch` first). Check `git worktree list` before starting, so two agents never share a branch or a folder. Never work in the folder you installed from.
+3. **Pull request, then merge.** `main` takes only pull requests whose `mifal` check passed; merged branches delete themselves.
+4. **Release on purpose.** Follow Releasing below. Only a pushed `vX.Y.Z` tag reaches users, and a tag cannot be moved or deleted, so a bad release is fixed by the next one.
+5. **Weekly cleanup.** `git fetch --prune`, `git worktree prune`, and `git branch --merged main`; delete a branch only after checking that it holds no commit `main` lacks (`git log main..<branch>`). Remove the worktrees of merged branches.
+6. **Never:** force-push, push to `main`, delete a tag, or edit a shipped file inside an installed copy.
+
+What publishes what: merging a pull request that changes `site/` publishes the website within about a minute. Only a pushed `vX.Y.Z` tag gives users a new version, if they updated to 0.2.0 or later. Installs on 0.1.x, and anyone who cloned `main` from the README or the site, still follow the tip of `main`, so keep `main` releasable.
+
+Words to give a coding agent:
+
+- Start: "In the Mifal clone, create a worktree and branch `agent/<you>-<topic>` from `origin/main`. Do `<task>`. Run `tests/run.sh -q`. Do not push."
+- Publish a website change: "Open a pull request for this branch. Wait for the `mifal` check. Show me the diff and screenshots. Wait for my yes, then squash-merge and confirm the Pages deploy passed."
+- Release to users: "Raise `VERSION` to X in a pull request. Wait for the `release` workflow to pass. After my yes, merge it, tag that exact merge commit `vX`, push the tag, and confirm the tag's run passed."
+
 ## Releasing
 
 `main` is protected: every change goes in by pull request, and the `mifal` check must pass. Release tags `v*` cannot be moved or deleted. `mifal update` follows the newest `vX.Y.Z` tag, so merging to `main` does not reach users; tagging does.
