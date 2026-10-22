@@ -35,6 +35,8 @@ class Plan:
     notes: list = field(default_factory=list)
     conflicts: list = field(default_factory=list)
     stops: list = field(default_factory=list)
+    unwritable: list = field(default_factory=list)
+    leave_out: list = field(default_factory=list)
     data: dict = field(default_factory=dict)
     previous: str | None = None
     old: dict | None = None
@@ -220,7 +222,17 @@ def make_plan(h: Home, source: Path, version: str, overwrite_edits: bool = False
             continue
         new_block = harness.block(w.name, version, guide_text)
         if os.path.lexists(w.rules) and state(w.rules)[0] != "file":
-            plan.conflicts.append(f"{show(w.rules)}: is not a file")
+            kind = state(w.rules)
+            where = f"{show(w.rules)}: "
+            if kind[0] == "link":
+                dest = show(Path(kind[1])) if os.path.isabs(kind[1]) else kind[1]
+                why = f"is a symbolic link to {dest}, and Mifal does not write through a link"
+            elif kind[0] == "dir":
+                why = "is a folder, and Mifal writes a file there"
+            else:
+                why = "is not a regular file"
+            plan.conflicts.append(where + why)
+            plan.unwritable.append((where + why, kind[0], w.name, dest if kind[0] == "link" else None))
             continue
         text = mf.read_rules(w.rules) if os.path.lexists(w.rules) else None
         found = harness.BLOCK.findall(text or "")
@@ -335,4 +347,23 @@ def make_plan(h: Home, source: Path, version: str, overwrite_edits: bool = False
         "harnesses": records,
         "folders": now_folders,
     }
+    blocked = {u[2] for u in plan.unwritable}
+    if not blocked & set(was_wired):
+        plan.leave_out = [w.name for w in wirings if w.name not in blocked and not w.skip]
     return plan
+
+
+def unwritable_advice(plan, can_leave_out: bool) -> list:
+    """The ways out of a rules file Mifal will not write; saving a copy first does not apply to a link or a folder."""
+    many = len(plan.unwritable) > 1
+    links = [dest for _, kind, _, dest in plan.unwritable if kind == "link"]
+    what = "each" if many else "the link" if links else "it"
+    lines = [f"To wire {'these agents' if many else 'that agent'}, replace {what} with a regular file and run again"]
+    if links:
+        lines[0] += ("; each agent then reads its own copy, not the file its link pointed to." if many else
+                     f"; the agent then reads its own copy, not {links[0]}.")
+    else:
+        lines[0] += "."
+    if can_leave_out and plan.leave_out:
+        lines.append("Or wire only the other agents: ./install.sh " + " ".join(f"--harness {n}" for n in plan.leave_out))
+    return lines
