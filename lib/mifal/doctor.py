@@ -54,6 +54,10 @@ def doctor(h: mf.Home, env, out) -> int:
         r.line("FAIL", "manifest", "an install was interrupted", "run ./install.sh in your Mifal clone to roll it back")
         return 1
     show = h.show
+    shell = env
+    env, notes = harness.recorded_env(data, shell, show)
+    for line in notes:
+        out(line)
 
     for line in moved_folders(h, data.get("folders", {})):
         r.line("FAIL", "folders", line, "put the folder back where it was")
@@ -94,10 +98,16 @@ def doctor(h: mf.Home, env, out) -> int:
         rules, root = Path(rec["rules"]), Path(rec["root"])
         _guide(r, name, rules, root, blocks.get(rec["rules"]), guide_sha, h, env)
         if name == "claude":
-            unlinked = [n for n in skills if not os.path.islink(root / "skills" / n)
-                        or os.readlink(root / "skills" / n) != str(h.pool / n)]
-            wrong = [n for n in unlinked if n in mifal_skills]
-            yours = [n for n in unlinked if n not in mifal_skills]
+            def exact(n):
+                return os.path.islink(root / "skills" / n) and os.readlink(root / "skills" / n) == str(h.pool / n)
+
+            def resolves(n):
+                link = root / "skills" / n
+                return os.path.islink(link) and os.path.realpath(link) == os.path.realpath(h.pool / n)
+
+            # Uninstall matches the recorded link text, so Mifal's own links must match exactly; a link of yours only has to work.
+            wrong = [n for n in skills if n in mifal_skills and not exact(n)]
+            yours = [n for n in skills if n not in mifal_skills and not resolves(n)]
             if wrong:
                 r.line("FAIL", "skills claude", f"{len(wrong)} skill link(s) missing or changed in "
                        f"{show(root / 'skills')}: " + ", ".join(wrong[:5]), REINSTALL)
@@ -136,10 +146,10 @@ def doctor(h: mf.Home, env, out) -> int:
         r.line("WARN", "agent-browser", "the agent-browser skill's CLI is not on PATH, and Mifal does not install it; "
                "browser checks need it", "npm i -g agent-browser && agent-browser install")
 
-    if env.get("FACTORY_HOME_OVERRIDE"):
+    if shell.get("FACTORY_HOME_OVERRIDE"):
         r.line("WARN", "droid", "FACTORY_HOME_OVERRIDE is set; Droid may not read the wiring in ~/.factory")
     for variable in ROOT_VARIABLES:
-        value = env.get(variable)
+        value = shell.get(variable)
         if value and os.path.isabs(value) and not (os.path.realpath(value) + os.sep).startswith(str(h.real) + os.sep):
             out(f"WARN {variable} is {value}, outside your home folder")
             r.counts["WARN"] += 1

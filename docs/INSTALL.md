@@ -12,7 +12,7 @@ Mifal writes only into your home folder, and only where the dry run says. On a m
 | Where | What Mifal writes |
 |---|---|
 | `~/.agents/mifal/` | The engine: the `mifal` command and its library, the experimental Herdr adapter and tools, the Guide (`AGENTS.md`) and the Manifest; 44 files |
-| `~/.agents/skills/` | 39 skills, 241 files |
+| `~/.agents/skills/` | 39 skills, 242 files |
 | `~/.local/bin/mifal` | A link to the engine's `mifal` command |
 | `~/.claude/CLAUDE.md` | A Marked block that imports the Guide |
 | `~/.claude/skills/` | 39 links, one per skill, into `~/.agents/skills/` |
@@ -25,6 +25,8 @@ Mifal writes only into your home folder, and only where the dry run says. On a m
 An agent is wired when its program is on your PATH or its home folder exists; `./install.sh --harness codex --harness pi` wires exactly the ones you name. Folders Mifal creates are recorded and removed on uninstall once they are empty.
 
 Rules files are never replaced. Mifal adds only its own Marked block, and leaves the rest of the file as you wrote it. When an agent reads a file other than the one Mifal would write (an `AGENTS.override.md`, or OpenCode or Pi reading a `CLAUDE.md`), Mifal skips that agent and tells you which file it reads now, rather than hiding your file. If an agent's rules file is a symbolic link (a dotfiles setup, say), the install stops and writes nothing, names the link and where it points, and tells you to replace it with a regular file (the agent then reads its own copy) or to wire only the other agents with `--harness`.
+
+A skills folder that is a symbolic link to a real folder in your home, such as a second Claude home sharing one skills folder with the first, is written through: Mifal puts its links in the folder behind the link and leaves your link and your own skills alone, and `mifal uninstall` removes only Mifal's links. A link that points outside your home needs `--allow-root-outside-home`. A link that is broken, or that points at a file or at another link, stops the install and writes nothing; point it at a real folder, or leave that agent out with `--harness`.
 
 An existing skill or file in Mifal's way is moved to `~/.agents/mifal/backup/` and restored on uninstall. A file you edit after the install is yours: a reinstall stops before overwriting it, and `--overwrite-edits` saves a copy to `~/.agents/mifal-saved/` first.
 
