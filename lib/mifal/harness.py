@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import shlex
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,9 +46,13 @@ def _root(env, variable, default: Path, empty_is_unset=False) -> Path:
     return Path(value)
 
 
+def config_home(home: Path, env) -> Path:
+    return _root(env, "XDG_CONFIG_HOME", home / ".config", empty_is_unset=True)
+
+
 def roots(home: Path, env) -> dict:
     """Each harness's root folder, as the harness itself finds it, before realpath resolution."""
-    xdg = _root(env, "XDG_CONFIG_HOME", home / ".config", empty_is_unset=True)
+    xdg = config_home(home, env)
     return {
         "claude": _root(env, "CLAUDE_CONFIG_DIR", home / ".claude"),
         "codex": _root(env, "CODEX_HOME", home / ".codex"),
@@ -62,35 +67,37 @@ VARIABLES = {"claude": "CLAUDE_CONFIG_DIR", "codex": "CODEX_HOME", "pi": "PI_COD
 
 
 def recorded_env(data: dict, env, show=str):
-    """(env, notes): the environment an update or a doctor run uses, so it serves the homes the install recorded.
-
-    Each wired agent's variable is set to its recorded root and the variables of the other agents are removed. A
-    manifest without a harness record passes env unchanged. A variable the shell set to another home is noted."""
+    """(env, notes): the environment an update or a doctor run uses beside the recorded Homes, which it reaches by
+    their recorded roots. The agents' root variables are removed, so the shell's cannot add or move a Home. A
+    manifest without a harness record passes env unchanged. A variable the shell set to a Home Mifal does not serve
+    is noted."""
     records = data.get("harnesses") or {}
     if not records:
         return env, []
-    out, notes = dict(env), []
+    notes = []
     for name, variable in VARIABLES.items():
-        rec = records.get(name)
-        if not rec or rec["status"] != "wired":
-            out.pop(variable, None)
-            continue
+        served = [r["root"] for r in records.get(name, []) if r["status"] == "wired"]
         shell = env.get(variable)
-        if shell and os.path.realpath(shell) != os.path.realpath(rec["root"]):
-            notes.append(f"note {variable} is {show(shell)}, but Mifal serves {show(rec['root'])}; "
-                         "to serve another home, run ./install.sh")
-        out[variable] = rec["root"]
-    return out, notes
+        if served and shell and os.path.realpath(shell) not in {os.path.realpath(r) for r in served}:
+            shown = [show(r) for r in served]
+            listed = shown[0] if len(shown) == 1 else ", ".join(shown[:-1]) + " and " + shown[-1]
+            notes.append(f"note {variable} is {show(shell)}, but Mifal serves {listed}; "
+                         f"to serve another home, run ./install.sh --home {shlex.quote(f'{name}={shell}')}")
+    return {k: v for k, v in env.items() if k not in VARIABLES.values()}, notes
 
 
-def unserved(home: Path, data: dict, env, show=str) -> list:
-    """A note for each harness detected in the shell's environment that the install does not serve."""
+def unserved(home: Path, data: dict, env, show=str, unrecorded_only=False) -> list:
+    """A note for each harness detected in the shell's environment that the install does not serve. With
+    unrecorded_only (the doctor), a harness the Manifest records as skipped is left out, because the doctor
+    explains it already, and a Manifest that records none lists every detected harness; an update gives no
+    notes then, because it wires them."""
     records = data.get("harnesses") or {}
-    if not records:
+    if not records and not unrecorded_only:
         return []
     found = roots(home, env)
     return [f"note found {name} at {show(found[name])}, not served; run ./install.sh to add it"
-            for name in detect(home, env, found) if records.get(name, {}).get("status") != "wired"]
+            for name in detect(home, env, found)
+            if not any(r["status"] == "wired" for r in records.get(name, [])) and not (unrecorded_only and name in records)]
 
 
 def _binary(name, env) -> bool:
@@ -138,6 +145,13 @@ def _open_fence(text: str) -> bool:
     return fenced
 
 
+def _holds_more_than_block(path: Path) -> bool:
+    try:
+        return bool(BLOCK.sub("", path.read_text(encoding="utf-8", errors="replace")).strip())
+    except OSError:
+        return True
+
+
 def plan(name, home: Path, env, root: Path, show) -> Wiring:
     """Where the Guide goes for this harness, or why Mifal leaves it alone."""
     rules = root / ("CLAUDE.md" if name == "claude" else "AGENTS.md")
@@ -149,10 +163,13 @@ def plan(name, home: Path, env, root: Path, show) -> Wiring:
         w.skip = (f"skip {name}: it reads {show(now)}, which overrides {show(rules)}. Mifal does not hide your "
                   f"override. To wire {TITLES[name]}, move what you want to keep into {show(rules)}, remove the "
                   f"override and run the installer again.")
-    elif now is not None:
+    elif now is not None and name != "opencode":
         w.skip = (f"skip {name}: it reads {show(now)} now. Mifal's block belongs in {show(rules)}, and once that "
                   f"file exists {TITLES[name]} stops reading {show(now)}. To wire it, copy what you want to keep "
                   f"from {show(now)} into {show(rules)} and run the installer again.")
+    elif now is not None and _holds_more_than_block(now):
+        w.warn = (f"{show(now)}: OpenCode reads it now, and stops once Mifal writes {show(rules)}; copy what you "
+                  f"want to keep from it into {show(rules)}")
     elif rules.is_file() and _open_fence(rules.read_text(encoding="utf-8")):
         w.skip = f"skip {name}: {show(rules)} ends inside an open code fence; close it and run the installer again."
     return w

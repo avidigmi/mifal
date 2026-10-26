@@ -213,6 +213,7 @@ contract's mandatory minima, not a second copy of Matt's route graph:
   both canonical `implement` and `tdd` bodies.
 - Code review or final build/debug acceptance: select `code-review`.
 - Debug reproduction, hypothesis, diagnosis or fix: select `diagnosing-bugs`.
+- Debug fix: also select `tdd`; the `Implement: n/a:` exemptions lift it as they do on build.
 - Build/fix retrospective phase and whole-mission acceptance: select `retro`
   and `writing-for-agents`, and record their actual complete reads.
 - DDD applies: select `ddd` and the current DDD phase body: `ddd-scope` for
@@ -296,6 +297,23 @@ gate or in the `report` or `deliver` phase (every step). A step still ahead of
 the record is pending, never a skip. A step that is listed but unchecked while
 a later one is done is a skip, and the message says it is listed but not done.
 
+A brief that keeps its own checklist copies its route's step names from that
+section, in order, and ticks them as the phases finish. A research brief:
+
+```text
+## Phase checklist
+- [x] Scope: questions named
+- [ ] Source: sources chosen
+- [ ] Investigate: sources read
+- [ ] Synthesize: findings written
+- [ ] Review: claims checked
+- [ ] Verify: report matches the sources
+```
+
+A list such as Scope, Investigate, Report is refused once Investigate is
+ticked, because `source`, a required step before it, is owed. Every other route
+builds its checklist the same way from its own line of the section.
+
 Only the human cuts a step. Record it as
 
 ```text
@@ -324,8 +342,8 @@ way at every check; cite the part the human wrote in a smaller file. The check
 proves the line has a quote and
 a source, not that the human said it: the lead's reviewer reads the source. A
 branch is not a cut: Ask Matt's branches shorten the path by its own rules, and
-the opening "full workflow or cut?" question shows the human what a branch
-drops.
+the opening "full workflow or cut?" question, asked with the recommended
+answer (full workflow), shows the human what a branch drops.
 
 Reads carry their time. Write a `Loaded:` line's read pointer with
 `at:<UTC time>` (`at:2026-10-17T10:00:00Z`; seconds optional), and log the gate
@@ -342,8 +360,9 @@ than the earliest start Check of the step its row governs. A later reload never
 makes an earlier on-time read late; a late read is refused only when no read of
 that body is on time, and it stays refused after the record's `Phase` moves on.
 The steps: grilling, grill-with-docs and domain-modeling govern `grilling`;
-to-spec governs `to-spec`; to-tickets governs `to-tickets`; implement and tdd
-govern `implement`; code-review governs `review`; retro governs `retro`.
+to-spec governs `to-spec`; to-tickets governs `to-tickets`; implement governs
+`implement`; tdd governs `implement`, and `fix` on the debug route (a debug record
+with no `fix` start Check leaves the read unverified); code-review governs `review`; retro governs `retro`.
 `ask-matt`, `engineering-workflow` and `team-lead` are held to the earliest start
 Check of any step. Any other body is held to the phase word its row in
 `workflow-map.md` names, and a body whose row names none to the record's `Phase`.
@@ -383,7 +402,9 @@ Use the shared, stdlib-only validator:
 ```sh
 python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py workflow <existing-state.md> --gate entry
 python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py brief <brief.md> --matt
+python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py brief-digest <brief.md>
 python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py receipt <brief.md> --matt
+python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py receipt <brief.md> --matt --brief-digest sha256:<digest>
 python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py workflow <existing-state.md> --gate review
 python3 ~/.agents/skills/team-lead/scripts/validate_contracts.py workflow <existing-state.md> --gate accept
 ```
@@ -401,6 +422,22 @@ no second tracker is needed. Reconcile
 the same active record after compaction; reload the engineering entry,
 Ask Matt and current specialist, record the reads, and resume the first
 incomplete phase. Preserve passed evidence only while its inputs hold.
+
+Pin the brief when you dispatch it. `brief-digest <brief>` prints
+`sha256:<digest>` of the brief text above its first `## Return` line (one inside
+a code fence is not that line), with every `- [x]` or `- [X]` read as `- [ ]`. A
+worker can therefore tick its Phase checklist and append its return without
+changing the digest. Line endings, trailing whitespace and closing blank
+lines do not count; every other edit does, a cut Done-means line or a rewritten
+Outcome included. Stamp it in the dispatch's Check line, for example
+`Check: start implement | passed | brief --matt exit 0 brief=sha256:<digest> at:<UTC>`,
+and accept the return with `receipt <brief> --matt --brief-digest sha256:<digest>`.
+A mismatch is refused: the worker changed what it was asked. When you amend the
+brief yourself, run `brief-digest` again and stamp the new digest in a new Check
+line before the return is checked. The flag is opt-in, and without it `receipt`
+behaves as before. The pin ends at the first `## Return` line, so the brief's own
+return instructions and the worker's returns are not pinned; it shows that the
+text above is the text you stamped, not that the worker followed it.
 
 Before review dispatch, add `Snapshot: <absolute review JSON path>` from
 `~/.agents/mifal/tools/review-snapshot.py --repo <repo> --base <fixed point>`

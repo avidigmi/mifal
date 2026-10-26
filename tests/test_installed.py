@@ -5,6 +5,7 @@ from support import Sandbox
 
 SCRIPTS = ".agents/skills/team-lead/scripts"
 FIXTURES = SCRIPTS + "/fixtures"
+ADAPTER = ".agents/mifal/tools/herdr_adapter"
 
 
 class InstalledValidator(Sandbox):
@@ -39,6 +40,94 @@ class InstalledValidator(Sandbox):
         refused = self.validate("receipt", self.home / FIXTURES / "receipt/bad/missing-claims.md", check=False)
         self.assertNotEqual(refused.returncode, 0)
         self.assertNotIn("Traceback", refused.stderr)
+
+    def imports_installed(self, *modules):
+        """Import the installed adapter modules in a fresh interpreter; import-time wiring only."""
+        return self.run_cmd("python3", "-B", "-c",
+                            "import sys; sys.path.insert(0, sys.argv[1]); import " + ", ".join(modules),
+                            str(self.home / ADAPTER))
+
+    def test_the_installed_adapter_imports_lead_wake_preflight_and_resume(self):
+        result = self.imports_installed("lead", "wake", "preflight", "resume")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_installed_lead_resolves_the_pool_scripts(self):
+        result = self.run_cmd("python3", "-B", "-c",
+                              "import sys; sys.path.insert(0, sys.argv[1]); import lead; print(lead.SCRIPTS)",
+                              str(self.home / ADAPTER))
+        self.assertEqual(result.stdout.strip(), str(self.home / SCRIPTS))
+
+
+class InstalledLicences(Sandbox):
+    """The licences and provenance travel with the install: the clone can go and they stay, byte for byte."""
+
+    LICENCES = "frontend-design/references/interface/licenses"
+
+    def tree(self, base):
+        return {str(p.relative_to(base)): p.read_bytes() for p in sorted(base.rglob("*")) if p.is_file()}
+
+    def test_the_install_carries_notice_and_third_party_and_uninstall_removes_them(self):
+        self.install()
+        engine = self.home / ".agents/mifal"
+        source = self.clone / "third_party"
+        self.assertEqual(len(self.tree(source)), 15)
+        self.assertEqual(self.tree(engine / "third_party"), self.tree(source))
+        self.assertEqual((engine / "NOTICE").read_bytes(), (self.clone / "NOTICE").read_bytes())
+        for name in ("IMPECCABLE-LICENSE", "LOTTIEFILES-LICENSE"):
+            self.assertEqual((self.home / ".agents/skills" / self.LICENCES / name).read_bytes(),
+                             (self.clone / "skills" / self.LICENCES / name).read_bytes())
+        self.mifal("uninstall")
+        self.assertFalse((engine / "NOTICE").exists())
+        self.assertFalse((engine / "third_party").exists())
+
+
+class CloneAdapter(Sandbox):
+    """In a clone, lead.py still resolves the repository's own skills folder."""
+
+    def test_clone_lead_resolves_the_repository_scripts(self):
+        result = self.run_cmd("python3", "-B", "-c",
+                              "import sys; sys.path.insert(0, sys.argv[1]); import lead; print(lead.SCRIPTS)",
+                              str(self.clone / "tools/herdr_adapter"))
+        self.assertEqual(result.stdout.strip(), str(self.clone / "skills/team-lead/scripts"))
+
+
+class RelocatedEngine(Sandbox):
+    """An independently relocated engine: the Pool comes from the installed Manifest's recorded root, not
+    from a physical sibling of the engine."""
+
+    def install_relocated(self, engine_to, pool_real=None):
+        if pool_real is not None:
+            pool_real.mkdir(parents=True, exist_ok=True)
+            skills = self.home / ".agents/skills"
+            skills.parent.mkdir(parents=True, exist_ok=True)
+            skills.symlink_to(pool_real)
+        self.install()
+        shutil.rmtree(self.clone)
+        engine = self.home / ".agents/mifal"
+        engine_to.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(engine), engine_to)
+        engine.symlink_to(engine_to)
+
+    def lead_scripts(self, *modules):
+        return self.run_cmd("python3", "-B", "-c",
+                            "import sys; sys.path.insert(0, sys.argv[1]); import " + ", ".join(modules) +
+                            "; print(lead.SCRIPTS)",
+                            str(self.home / ADAPTER))
+
+    def test_a_relocated_engine_with_the_pool_in_place_imports_and_resolves_the_pool(self):
+        self.install_relocated(self.home / "storage/engine")
+        result = self.lead_scripts("lead", "wake", "preflight", "resume")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        result = self.lead_scripts("lead")
+        self.assertEqual(result.stdout.strip(), str(self.home / SCRIPTS))
+
+    def test_a_relocated_engine_and_a_separately_linked_pool_resolve_the_recorded_pool(self):
+        pool_real = self.home / "storage/pool"
+        self.install_relocated(self.home / "storage/engine", pool_real)
+        result = self.lead_scripts("lead", "wake", "preflight", "resume")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        result = self.lead_scripts("lead")
+        self.assertEqual(result.stdout.strip(), str(pool_real / "team-lead" / "scripts"))
 
 
 if __name__ == "__main__":

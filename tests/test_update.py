@@ -1,10 +1,20 @@
+import json
 import os
+import re
 import shutil
 import subprocess
 import unittest
 
 from support import Sandbox, changed, snapshot
 from test_lifecycle import normalized, planned_paths
+
+SKILL_NOTE = ("note 1 skill folder(s) or link(s) of yours are saved in ~/.agents/mifal/backup: a release took their "
+              "names. To keep one under another name, copy it from there; mifal uninstall puts each back where it was "
+              "when that place is free")
+CLONE_NOTE = ("note 1 item(s) of yours from your Mifal clone are saved in ~/.agents/mifal/backup: git ignored them and "
+              "a release added tracked files where they were. They stay there after mifal uninstall while the clone "
+              "has the release's files in their place; to keep one, copy it from there, but copying it back into the "
+              "clone makes the clone's tracked file differ")
 
 
 class Update(Sandbox):
@@ -48,6 +58,17 @@ class Update(Sandbox):
         self.git(self.work, "commit", "-q", "-m", message)
         self.git(self.work, "push", "-q", "origin", "main")
         return self.head(self.work)
+
+    def drop_licences(self):
+        """The state a 0.2.3 update leaves: the engine without NOTICE and third_party/, and a Manifest that omits them."""
+        engine = (self.home / ".agents/mifal").resolve()
+        mine = lambda path: path == str(engine / "NOTICE") or path.startswith(str(engine / "third_party"))
+        data = self.manifest()
+        data["entries"] = [e for e in data["entries"] if not mine(e["path"])]
+        (self.home / ".agents/mifal/install-manifest.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+        (engine / "NOTICE").unlink()
+        shutil.rmtree(engine / "third_party")
+        self.installed = snapshot(self.home)
 
     def update(self, *args, **kw):
         return self.mifal("update", *args, check=False, **kw)
@@ -147,14 +168,16 @@ class Releases(Update):
         self.assertEqual(self.head(), self.old)
 
     def test_a_release_the_install_is_already_past_is_current(self):
-        self.cut("0.2.0")
+        major, minor, patch = (self.work / "VERSION").read_text().strip().split(".")
+        release = f"{major}.{minor}.{int(patch) + 1}"
+        self.cut(release)
         self.publish("after the release", **{"skills/grilling/NOTE.md": "unreleased\n"})
         self.git(self.clone, "pull", "-q", "--ff-only")
         self.install()
         installed = snapshot(self.home)
         result = self.update("--yes")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("already includes release v0.2.0", result.stdout)
+        self.assertIn(f"already includes release v{release}", result.stdout)
         self.assertEqual(snapshot(self.home), installed)
 
     def test_a_clone_pulled_past_the_release_still_installs_it_when_the_install_is_older(self):
@@ -315,6 +338,346 @@ class Recovery(Update):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.manifest()["source"]["revision"], new)
         self.assertTrue((self.home / ".agents/skills/grilling/NOTE.md").exists())
+
+
+class OpenCode(Update):
+    """An install that served no agent when it was made: update wires an agent found since, as an install does."""
+
+    def test_an_update_that_newly_wires_opencode_stops_on_the_claude_fallback_until_overwrite_edits(self):
+        self.harness_fakes("opencode")
+        moved = self.home / "elsewhere"
+        fallback = moved / ".claude/CLAUDE.md"
+        fallback.parent.mkdir(parents=True)
+        fallback.write_text("my claude rules\n")
+        self.publish(**{"skills/grilling/NOTE.md": "note\n"})
+        before = snapshot(self.home)
+        result = self.update("--yes", OPENCODE_TEST_HOME=str(moved))
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("~/elsewhere/.claude/CLAUDE.md: OpenCode reads it now, and stops once Mifal writes "
+                      "~/.config/opencode/AGENTS.md", result.stdout)
+        self.assertIn("Nothing was changed.", result.stdout)
+        self.assertIn("mifal update --overwrite-edits", result.stdout)
+        self.assertEqual(snapshot(self.home), before)
+        self.assertEqual(self.head(), self.old)
+        result = self.update("--overwrite-edits", "--yes", OPENCODE_TEST_HOME=str(moved))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("block ~/.config/opencode/AGENTS.md", result.stdout)
+        self.assertEqual(self.manifest()["harnesses"]["opencode"][0]["status"], "wired")
+        self.assertEqual(fallback.read_text(), "my claude rules\n")
+
+
+class Skipped(Update):
+    """An agent the Manifest records as skipped is planned again, at its recorded home, as the install would plan it."""
+
+    def record_skipped(self, name, root, rules):
+        """Mark name as skipped in the Manifest, as Mifal 0.2.x recorded an OpenCode that read the Claude fallback."""
+        data = self.manifest()
+        data["harnesses"][name] = {"root": os.path.realpath(root), "rules": os.path.realpath(root) + "/" + rules,
+                                   "status": "skipped"}
+        (self.home / ".agents/mifal/install-manifest.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+
+    def skipped_opencode(self):
+        """A Claude install whose Manifest records OpenCode as skipped, with a release waiting; the Claude rules file."""
+        self.harness_fakes("claude", "opencode")
+        fallback = self.home / ".claude/CLAUDE.md"
+        fallback.parent.mkdir(parents=True)
+        fallback.write_text("my claude rules\n")
+        self.install("--harness", "claude")
+        (self.home / ".config/opencode").mkdir(parents=True)
+        self.record_skipped("opencode", self.home / ".config/opencode", "AGENTS.md")
+        self.publish(**{"skills/grilling/NOTE.md": "note\n"})
+        return fallback
+
+    def test_an_update_plans_a_skipped_opencode_and_stops_on_the_claude_fallback_until_overwrite_edits(self):
+        fallback = self.skipped_opencode()
+        before = snapshot(self.home)
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("~/.claude/CLAUDE.md: OpenCode reads it now, and stops once Mifal writes "
+                      "~/.config/opencode/AGENTS.md", result.stdout)
+        self.assertNotIn("found opencode", result.stdout)
+        self.assertIn("Nothing was changed.", result.stdout)
+        self.assertEqual(snapshot(self.home), before)
+        self.assertEqual(self.head(), self.old)
+        result = self.update("--overwrite-edits", "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("block ~/.config/opencode/AGENTS.md", result.stdout)
+        self.assertEqual(self.manifest()["harnesses"]["opencode"][0]["status"], "wired")
+        self.assertEqual((self.home / ".config/opencode/AGENTS.md").read_text().count("<!-- mifal:begin "), 1)
+        self.assertTrue(fallback.read_text().startswith("my claude rules\n"))
+
+    def test_the_fallback_stop_says_what_overwrite_edits_accepts_and_neither_moves_nor_saves_the_file(self):
+        self.skipped_opencode()
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("For ~/.claude/CLAUDE.md: Mifal leaves it as it is. Run mifal update --overwrite-edits to "
+                      "accept that OpenCode then reads ~/.config/opencode/AGENTS.md instead.", result.stdout)
+        for wrong in ("Restore those paths", "save a copy", "saved", "move"):
+            self.assertNotIn(wrong, result.stdout.lower() if wrong == "move" else result.stdout)
+
+    def test_an_agent_whose_skip_still_holds_stays_skipped_with_its_note(self):
+        self.harness_fakes("claude", "pi")
+        (self.home / ".pi/agent").mkdir(parents=True)
+        (self.home / ".pi/agent/CLAUDE.md").write_text("my pi rules\n")
+        self.install("--harness", "claude", "--harness", "pi")
+        self.assertEqual(self.manifest()["harnesses"]["pi"][0]["status"], "skipped")
+        self.publish(**{"skills/grilling/NOTE.md": "note\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("skip pi: it reads ~/.pi/agent/CLAUDE.md now", result.stdout)
+        self.assertNotIn("found pi", result.stdout)
+        self.assertEqual(self.manifest()["harnesses"]["pi"][0]["status"], "skipped")
+        self.assertFalse((self.home / ".pi/agent/AGENTS.md").exists())
+
+    def test_a_skipped_agent_is_planned_at_its_recorded_home_not_the_default_one(self):
+        self.harness_fakes("claude", "codex")
+        alt = self.home / "alt-codex"
+        alt.mkdir()
+        (alt / "AGENTS.override.md").write_text("my override\n")
+        (self.home / ".codex").mkdir()
+        self.install("--harness", "claude", "--harness", "codex", CODEX_HOME=str(alt))
+        self.assertEqual(self.manifest()["harnesses"]["codex"][0]["status"], "skipped")
+        self.publish(**{"skills/grilling/NOTE.md": "note\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("skip codex: it reads ~/alt-codex/AGENTS.override.md", result.stdout)
+        self.assertFalse((self.home / ".codex/AGENTS.md").exists())
+        self.assertFalse((alt / "AGENTS.md").exists())
+
+    def skipped_custom_codex(self):
+        """A Claude install and a Codex Home at a custom root, recorded as skipped because of its override file."""
+        self.harness_fakes("claude", "codex")
+        alt = self.home / "alt-codex"
+        alt.mkdir()
+        (alt / "AGENTS.override.md").write_text("my override\n")
+        self.install("--harness", "claude", "--harness", "codex", CODEX_HOME=str(alt))
+        self.assertEqual(self.manifest()["harnesses"]["codex"][0]["status"], "skipped")
+        return alt
+
+    def test_a_skipped_custom_home_whose_folder_is_gone_stays_skipped_and_the_rest_of_the_update_proceeds(self):
+        alt = self.skipped_custom_codex()
+        (alt / "AGENTS.override.md").unlink()
+        alt.rmdir()
+        claude = self.home / ".claude"
+        shutil.rmtree(claude)
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Mifal is up to date", result.stdout)
+        self.assertFalse(os.path.lexists(alt))
+        self.publish(**{"skills/grilling/NOTE.md": "note\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(os.path.lexists(alt))
+        self.assertIn(f"skip codex: ~/alt-codex no longer exists, so Mifal keeps it recorded as skipped and writes "
+                      f"nothing there. To serve it, run ./install.sh --home codex={os.path.realpath(alt)}; to drop "
+                      "it, run mifal uninstall.", result.stdout.splitlines())
+        codex = self.manifest()["harnesses"]["codex"][0]
+        self.assertEqual((codex["root"], codex["status"]), (os.path.realpath(alt), "skipped"))
+        self.assertTrue((self.home / ".agents/skills/grilling/NOTE.md").exists())
+        self.assertEqual(self.head(), self.head(self.work))
+        self.assertEqual((claude / "CLAUDE.md").read_text().count("<!-- mifal:begin "), 1)
+        self.assertEqual(self.manifest()["harnesses"]["claude"][0]["status"], "wired")
+
+    def test_a_skipped_home_at_its_default_root_whose_folder_is_gone_stays_skipped_until_named_with_home(self):
+        self.harness_fakes("claude", "codex")
+        codex = self.home / ".codex"
+        codex.mkdir()
+        (codex / "AGENTS.override.md").write_text("my override\n")
+        self.install("--harness", "claude", "--harness", "codex")
+        self.assertEqual(self.manifest()["harnesses"]["codex"][0]["status"], "skipped")
+        (codex / "AGENTS.override.md").unlink()
+        codex.rmdir()
+        note = (f"skip codex: ~/.codex no longer exists, so Mifal keeps it recorded as skipped and writes nothing "
+                f"there. To serve it, run ./install.sh --home codex={os.path.realpath(codex)}; to drop it, run mifal "
+                "uninstall.")
+        for run in (self.install, lambda: (self.publish(**{"skills/grilling/NOTE.md": "note\n"}), self.update("--yes"))[1]):
+            result = run()
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertFalse(os.path.lexists(codex))
+            self.assertIn(note, result.stdout.splitlines())
+            self.assertEqual(self.manifest()["harnesses"]["codex"][0]["status"], "skipped")
+        self.install("--home", f"codex={codex}")
+        self.assertEqual((codex / "AGENTS.md").read_text().count("<!-- mifal:begin "), 1)
+        self.assertEqual(self.manifest()["harnesses"]["codex"][0]["status"], "wired")
+
+    def test_a_skipped_custom_home_whose_folder_remains_and_whose_skip_no_longer_holds_is_wired(self):
+        alt = self.skipped_custom_codex()
+        (alt / "AGENTS.override.md").unlink()
+        self.publish(**{"skills/grilling/NOTE.md": "note\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((alt / "AGENTS.md").read_text().count("<!-- mifal:begin "), 1)
+        self.assertEqual(self.manifest()["harnesses"]["codex"][0]["status"], "wired")
+
+
+class Reserved(Update):
+    """A release reserves a name that a skill of the person's already uses."""
+
+    def reserve(self):
+        self.publish("add a commit skill", **{"skills/commit/SKILL.md": "mifal commit\n"})
+
+    def theirs(self):
+        path = self.home / ".agents/skills/commit/SKILL.md"
+        path.parent.mkdir(parents=True)
+        path.write_text("my commit skill\n")
+        return path
+
+    def test_the_update_stops_and_changes_nothing_when_a_skill_of_yours_has_the_new_name(self):
+        theirs = self.theirs()
+        self.reserve()
+        before = snapshot(self.home)
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("~/.agents/skills/commit: exists and was not installed by Mifal, but this release installs "
+                      "its own at that path", result.stdout)
+        self.assertNotIn("~/.agents/skills/commit/SKILL.md", result.stdout)
+        self.assertIn("Nothing was changed.", result.stdout)
+        self.assertIn("mifal update --overwrite-edits", result.stdout)
+        self.assertEqual(snapshot(self.home), before)
+        self.assertEqual(self.head(), self.old)
+        self.assertEqual(theirs.read_text(), "my commit skill\n")
+
+    def test_overwrite_edits_backs_the_skill_up_then_installs_the_release_copy_and_doctor_notes_it(self):
+        theirs = self.theirs()
+        self.reserve()
+        result = self.update("--overwrite-edits", "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertRegex(result.stdout, r"backup ~/.agents/skills/commit -> "
+                                        r"~/.agents/mifal/backup/\d{8}T\d{6}Z/.agents/skills/commit")
+        self.assertEqual(theirs.read_text(), "mifal commit\n")
+        saved = list((self.home / ".agents/mifal/backup").glob("*/.agents/skills/commit/SKILL.md"))
+        self.assertEqual([p.read_text() for p in saved], ["my commit skill\n"])
+        doctor = self.mifal("doctor", check=False)
+        self.assertIn(SKILL_NOTE, doctor.stdout.splitlines())
+        self.assertNotRegex(doctor.stdout, r"(?m)^(WARN|FAIL) .*backup")
+        self.mifal("uninstall")
+        self.assertEqual(theirs.read_text(), "my commit skill\n")
+
+    def test_a_claude_link_of_yours_with_the_new_name_stops_the_update_and_is_restored_by_uninstall(self):
+        self.harness_fakes("claude")
+        self.install("--harness", "claude")
+        mine = self.home / "mine/commit"
+        mine.mkdir(parents=True)
+        (mine / "SKILL.md").write_text("my commit skill\n")
+        link = self.home / ".claude/skills/commit"
+        link.symlink_to(mine)
+        self.reserve()
+        before = snapshot(self.home)
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("~/.claude/skills/commit: exists and was not installed by Mifal", result.stdout)
+        self.assertEqual(snapshot(self.home), before)
+        result = self.update("--overwrite-edits", "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(os.readlink(link), os.path.realpath(self.home / ".agents/skills/commit"))
+        self.assertEqual((mine / "SKILL.md").read_text(), "my commit skill\n")
+        self.mifal("uninstall")
+        self.assertEqual(os.readlink(link), str(mine))
+
+    def test_a_name_the_install_already_owns_does_not_stop_the_update(self):
+        self.publish(**{"skills/grilling/NOTE.md": "note\n"})
+        extra = self.home / ".agents/skills/grilling/mine.md"
+        extra.write_text("my notes\n")
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(extra.read_text(), "my notes\n")
+
+
+class Ignored(Update):
+    """The clone holds a file git ignores, at a path a release then adds as a tracked file."""
+
+    MINE = b"my local notes\x00\n"
+
+    def ignored(self, rel):
+        path = self.clone / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(self.MINE)
+        with open(self.clone / ".git/info/exclude", "a") as f:
+            f.write(rel + "\n")
+        return path
+
+    def test_a_release_that_adds_a_tracked_file_over_an_ignored_one_stops_the_update(self):
+        mine = self.ignored("notes/local.md")
+        self.publish("add a note", **{"notes/local.md": "release\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(f"{mine}: your file is ignored by git in the clone, but this release adds a tracked file at "
+                      "that path, which would overwrite it", result.stdout)
+        self.assertIn("Nothing was changed.", result.stdout)
+        self.assertIn("mifal update --overwrite-edits", result.stdout)
+        self.assertEqual(mine.read_bytes(), self.MINE)
+        self.assertEqual(self.head(), self.old)
+        self.assertEqual(snapshot(self.home), self.installed)
+        self.assertEqual(self.update().stdout, result.stdout)
+
+    def test_an_ignored_file_where_the_release_needs_a_folder_stops_the_update(self):
+        mine = self.ignored("notes")
+        self.publish("add a note", **{"notes/local.md": "release\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(f"{mine}: your file is ignored by git in the clone, but this release adds a tracked file at "
+                      "that path, which would overwrite it", result.stdout)
+        self.assertEqual(mine.read_bytes(), self.MINE)
+        self.assertEqual(self.head(), self.old)
+
+    def test_a_copy_is_caught_even_when_the_clone_detects_copies(self):
+        self.git(self.clone, "config", "diff.renames", "copies")
+        mine = self.ignored("notes/README.md")
+        readme = (self.work / "README.md").read_text()
+        self.publish("copy the readme", **{"notes/README.md": readme, "README.md": readme + "more\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(f"{mine}: your file is ignored by git in the clone", result.stdout)
+        self.assertEqual(mine.read_bytes(), self.MINE)
+
+    def test_overwrite_edits_backs_the_ignored_file_up_then_updates(self):
+        mine = self.ignored("notes/local.md")
+        new = self.publish("add a note", **{"notes/local.md": "release\n"})
+        stamp = lambda text: re.sub(r"\d{8}T\d{6}Z", "STAMP", text)
+        preview = self.update("--overwrite-edits")
+        self.assertIn("Not applied.", preview.stdout)
+        self.assertEqual(mine.read_bytes(), self.MINE)
+        result = self.update("--overwrite-edits", "--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertRegex(result.stdout, rf"backup {re.escape(str(mine))} -> "
+                                        r"~/.agents/mifal/backup/\d{8}T\d{6}Z/.*/notes/local.md")
+        self.assertEqual(stamp(preview.stdout).split("Not applied.")[0],
+                         stamp(result.stdout).split("Updated Mifal")[0])
+        self.assertEqual(mine.read_text(), "release\n")
+        saved = list((self.home / ".agents/mifal/backup").glob("*/**/notes/local.md"))
+        self.assertEqual([p.read_bytes() for p in saved], [self.MINE])
+        self.assertEqual(self.head(), new)
+        self.assertEqual(self.manifest()["source"]["revision"], new)
+        doctor = self.mifal("doctor", check=False)
+        self.assertIn(CLONE_NOTE, doctor.stdout.splitlines())
+        self.assertNotIn("puts each back", doctor.stdout)
+        uninstall = self.mifal("uninstall")
+        self.assertIn(f"kept backup ~/{saved[0].relative_to(self.home)}: {mine} exists again", uninstall.stdout)
+        self.assertEqual([p.read_bytes() for p in saved], [self.MINE])
+        self.assertEqual(mine.read_text(), "release\n")
+        self.assertEqual(self.git(self.clone, "status", "--porcelain", "notes"), "")
+
+    def test_a_failed_fast_forward_puts_the_backed_up_file_back(self):
+        mine = self.ignored("notes/local.md")
+        self.publish("add a note", **{"notes/local.md": "release\n"})
+        result = self.update("--overwrite-edits", "--yes", MIFAL_TEST_FAIL_AT="fast-forward")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f"restore {mine}", result.stdout)
+        self.assertEqual(mine.read_bytes(), self.MINE)
+        self.assertEqual(snapshot(self.home), self.installed)
+        self.assertEqual(self.head(), self.old)
+
+    def test_an_untracked_file_and_an_ignored_one_the_release_does_not_add_do_not_stop_it(self):
+        mine = self.ignored("notes/other.md")
+        loose = self.clone / "LOOSE.md"
+        loose.write_bytes(self.MINE)
+        new = self.publish("add a note", **{"notes/local.md": "release\n"})
+        result = self.update("--yes")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("ignored by git", result.stdout)
+        self.assertNotIn("backup", result.stdout)
+        self.assertEqual((mine.read_bytes(), loose.read_bytes()), (self.MINE, self.MINE))
+        self.assertEqual(self.head(), new)
 
 
 if __name__ == "__main__":

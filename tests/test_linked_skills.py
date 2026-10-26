@@ -41,6 +41,27 @@ class G2(Sandbox):
         self.assertEqual((self.target / "mine/SKILL.md").read_text(), "my own skill\n")
 
 
+class OtherHome(G2):
+    """The second Claude home that shares the folder is not served by Mifal, and the doctor says the Guide
+    reaches it only if that home's own rules file brings it in."""
+
+    def doctor(self):
+        return Sandbox.mifal(self, "doctor", check=False)
+
+    def test_the_doctor_names_the_other_claude_home_mifal_does_not_serve(self):
+        self.install()
+        self.assertIn("note also seen by ~/.claude: it shares ~/.claude/skills, but Mifal does not serve ~/.claude, "
+                      "so the Guide reaches it only if its own rules file brings it in", self.doctor().stdout)
+        self.assertNotIn("without the Guide", self.doctor().stdout)
+
+    def test_the_doctor_says_nothing_when_no_other_home_shares_the_folder(self):
+        (self.home / "shared").mkdir()
+        self.link.unlink()
+        self.link.symlink_to("../shared")
+        self.install()
+        self.assertNotIn("also seen by", self.doctor().stdout)
+
+
 class Install(G2):
     def test_the_install_writes_its_links_into_the_linked_folder_and_keeps_the_link(
         self,

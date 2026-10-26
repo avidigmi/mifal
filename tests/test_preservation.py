@@ -123,7 +123,7 @@ class RulesFiles(Sandbox):
         rules.write_bytes(b"before\r\n")
         self.install("--harness", "codex")
         rules.write_bytes(rules.read_bytes() + b"after\r\n")
-        self.release("0.1.1")
+        self.release("0.3.0")
         self.install("--harness", "codex")
         self.assertTrue(rules.read_bytes().startswith(b"before\r\n"))
         self.assertTrue(rules.read_bytes().endswith(b"after\r\n"))
@@ -137,13 +137,13 @@ class Precedence(Sandbox):
         fallback.parent.mkdir(parents=True)
         fallback.write_text("my active fallback policy\n")
         rules = self.home / ".config/opencode/AGENTS.md"
-        for value, wired in (("false", False), ("0", False), ("", False), ("TRUE", True), ("1", True)):
+        for value, reads in (("false", True), ("0", True), ("", True), ("TRUE", False), ("1", False)):
             with self.subTest(OPENCODE_DISABLE_CLAUDE_CODE=value):
                 result = self.install("--harness", "opencode", "--dry-run", OPENCODE_DISABLE_CLAUDE_CODE=value)
-                self.assertEqual("skip opencode" not in result.stdout, wired, result.stdout)
+                self.assertEqual("OpenCode reads it now" in result.stdout, reads, result.stdout)
         result = self.install("--harness", "opencode", OPENCODE_DISABLE_CLAUDE_CODE_PROMPT="no")
-        self.assertIn("skip opencode", result.stdout)
-        self.assertFalse(rules.exists())
+        self.assertIn("note ~/.claude/CLAUDE.md: OpenCode reads it now", result.stdout)
+        self.assertTrue(rules.exists())
 
     def test_doctor_fails_with_the_fix_when_an_override_was_there_before_install(self):
         override = self.home / ".codex/AGENTS.override.md"

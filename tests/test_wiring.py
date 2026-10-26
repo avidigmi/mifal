@@ -61,8 +61,8 @@ class EachHarness(Wiring):
         harnesses = self.manifest()["harnesses"]
         for name, rel in RULES.items():
             with self.subTest(harness=name):
-                self.assertEqual(harnesses[name]["rules"], os.path.realpath(self.home / rel))
-                self.assertEqual(harnesses[name]["status"], "wired")
+                self.assertEqual(harnesses[name][0]["rules"], os.path.realpath(self.home / rel))
+                self.assertEqual(harnesses[name][0]["status"], "wired")
 
     def test_dry_run_lists_every_block_and_link_it_writes(self):
         self.harness_fakes(*RULES)
@@ -151,16 +151,73 @@ class Precedence(Wiring):
         self.assertFalse((self.home / ".codex/AGENTS.md").exists())
         self.assertEqual(self.wired(), {"droid"})
 
-    def test_opencode_with_only_the_claude_fallback_is_skipped(self):
+    FALLBACK_NOTE = ("~/.claude/CLAUDE.md: OpenCode reads it now, and stops once Mifal writes "
+                     "~/.config/opencode/AGENTS.md; copy what you want to keep from it into "
+                     "~/.config/opencode/AGENTS.md")
+
+    def fallback(self, text):
+        path = self.home / ".claude/CLAUDE.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        return path
+
+    def test_opencode_with_only_the_claude_fallback_gets_its_own_file_and_a_note_naming_what_it_stops_reading(self):
         self.harness_fakes("opencode")
-        (self.home / ".claude").mkdir()
-        (self.home / ".claude/CLAUDE.md").write_text("my claude rules\n")
-        self.assertEqual(self.reads_now("opencode"), self.home / ".claude/CLAUDE.md")
+        fallback = self.fallback("my claude rules\n")
+        self.assertEqual(self.reads_now("opencode"), fallback)
         result = self.install("--harness", "opencode")
-        self.assertIn("skip opencode: it reads ~/.claude/CLAUDE.md now", result.stdout)
-        self.assertIn("copy what you want to keep from ~/.claude/CLAUDE.md into ~/.config/opencode/AGENTS.md",
-                      result.stdout)
-        self.assertEqual(self.wired(), set())
+        self.assertIn("note " + self.FALLBACK_NOTE, result.stdout)
+        self.assertNotIn("skip opencode", result.stdout)
+        self.assertEqual(self.wired(), {"opencode"})
+        self.assertEqual(fallback.read_text(), "my claude rules\n")
+        self.assertEqual(self.reads_now("opencode"), self.home / RULES["opencode"])
+        self.mifal("uninstall")
+        self.assertFalse((self.home / RULES["opencode"]).exists())
+        self.assertEqual(fallback.read_text(), "my claude rules\n")
+
+    def test_the_dry_run_names_the_file_opencode_stops_reading_and_writes_nothing(self):
+        self.harness_fakes("opencode")
+        self.fallback("my claude rules\n")
+        before = snapshot(self.home)
+        result = self.install("--harness", "opencode", "--dry-run")
+        self.assertIn("note " + self.FALLBACK_NOTE, result.stdout)
+        self.assertIn("block ~/.config/opencode/AGENTS.md", result.stdout)
+        self.assertEqual(snapshot(self.home), before)
+
+    def test_no_note_when_the_claude_fallback_holds_nothing_besides_mifals_block(self):
+        self.harness_fakes("opencode")
+        self.fallback(harness.block("claude", "0.0.0", "a guide\n"))
+        result = self.install("--harness", "opencode")
+        self.assertNotIn("OpenCode reads it now", result.stdout)
+        self.assertEqual(len(self.blocks(RULES["opencode"])), 1)
+
+    def test_a_later_install_that_adds_opencode_stops_on_the_fallback_until_overwrite_edits(self):
+        self.harness_fakes("codex", "opencode")
+        fallback = self.fallback("my claude rules\n")
+        self.install("--harness", "codex")
+        before = snapshot(self.home)
+        result = self.install("--harness", "opencode", check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(self.FALLBACK_NOTE, result.stdout)
+        self.assertIn("--overwrite-edits", result.stdout)
+        self.assertIn("Nothing was written.", result.stdout)
+        self.assertEqual(snapshot(self.home), before)
+        result = self.install("--harness", "opencode", "--overwrite-edits")
+        self.assertIn("note " + self.FALLBACK_NOTE, result.stdout)
+        self.assertEqual(self.wired(), {"codex", "opencode"})
+        self.assertEqual(fallback.read_text(), "my claude rules\n")
+
+    def test_the_fallback_stop_says_what_overwrite_edits_accepts_and_neither_moves_nor_saves_the_file(self):
+        self.harness_fakes("codex", "opencode")
+        self.fallback("my claude rules\n")
+        self.install("--harness", "codex")
+        result = self.install("--harness", "opencode", check=False)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("For ~/.claude/CLAUDE.md: Mifal leaves it as it is. Run again with --overwrite-edits to "
+                      "accept that OpenCode then reads ~/.config/opencode/AGENTS.md instead.", result.stdout)
+        self.assertIn("Nothing was written.", result.stdout)
+        for wrong in ("Move them aside", "save a copy", "saved", "changed since Mifal wrote them"):
+            self.assertNotIn(wrong, result.stdout)
 
     def test_pi_with_only_claude_md_is_skipped(self):
         self.harness_fakes("pi")
@@ -179,19 +236,18 @@ class Precedence(Wiring):
         self.assertIn("skip pi: it reads ~/.pi/agent/AGENTS.override.md", self.install().stdout)
 
     def test_a_target_the_user_creates_after_a_skip_gets_only_the_block_and_is_kept_by_uninstall(self):
-        self.harness_fakes("opencode")
-        (self.home / ".claude").mkdir()
-        (self.home / ".claude/CLAUDE.md").write_text("my claude rules\n")
-        self.install("--harness", "opencode")
-        target = self.home / RULES["opencode"]
-        target.parent.mkdir(parents=True)
-        target.write_text("kept from my claude rules\n")
-        self.assertEqual(self.reads_now("opencode"), target)
-        self.install("--harness", "opencode")
-        self.assertEqual(self.wired(), {"opencode"})
-        self.assertTrue(target.read_text().startswith("kept from my claude rules\n\n<!-- mifal:begin"))
+        self.harness_fakes("pi")
+        (self.home / ".pi/agent").mkdir(parents=True)
+        (self.home / ".pi/agent/CLAUDE.md").write_text("my pi rules\n")
+        self.install("--harness", "pi")
+        target = self.home / RULES["pi"]
+        target.write_text("kept from my pi rules\n")
+        self.assertEqual(self.reads_now("pi"), target)
+        self.install("--harness", "pi")
+        self.assertEqual(self.wired(), {"pi"})
+        self.assertTrue(target.read_text().startswith("kept from my pi rules\n\n<!-- mifal:begin"))
         self.mifal("uninstall")
-        self.assertEqual(target.read_text(), "kept from my claude rules\n")
+        self.assertEqual(target.read_text(), "kept from my pi rules\n")
 
     def test_opencode_reads_its_fallback_as_opencode_does(self):
         self.harness_fakes("opencode")
@@ -208,7 +264,8 @@ class Precedence(Wiring):
         (moved / ".claude/CLAUDE.md").write_text("rules there\n")
         self.assertEqual(self.reads_now("opencode", OPENCODE_TEST_HOME=str(moved)), moved / ".claude/CLAUDE.md")
         result = self.install("--harness", "opencode", OPENCODE_TEST_HOME=str(moved))
-        self.assertIn("skip opencode: it reads ~/elsewhere/.claude/CLAUDE.md now", result.stdout)
+        self.assertIn("note ~/elsewhere/.claude/CLAUDE.md: OpenCode reads it now, and stops once Mifal writes",
+                      result.stdout)
 
 
 class Roots(Wiring):
@@ -226,7 +283,7 @@ class Roots(Wiring):
                 root = self.home / folder
                 self.install(**{variable: str(root)})
                 self.assertEqual(len(BLOCK.findall((root / rules).read_text())), 1)
-                self.assertEqual(self.manifest()["harnesses"][name]["root"], os.path.realpath(root))
+                self.assertEqual(self.manifest()["harnesses"][name][0]["root"], os.path.realpath(root))
                 self.assertFalse((self.home / RULES[name]).exists())
                 if name == "claude":
                     self.assertTrue((root / "skills/tdd").is_symlink())
@@ -320,11 +377,38 @@ class Selection(Wiring):
 
 
 class Limits(Wiring):
-    def test_a_codex_file_that_would_pass_32_kib_warns(self):
-        self.harness_fakes("codex")
-        (self.home / ".codex").mkdir()
-        (self.home / ".codex/AGENTS.md").write_text("x" * 32000 + "\n")
-        self.assertIn("32 KiB", self.install().stdout)
+    def test_a_rules_file_that_would_pass_32_kib_with_the_block_stops_the_run_with_nothing_written(self):
+        for name in ("codex", "claude"):
+            with self.subTest(harness=name):
+                self.setUp()
+                self.harness_fakes(name)
+                rules = self.home / RULES[name]
+                rules.parent.mkdir()
+                rules.write_text("x" * 32700 + "\n")
+                before = snapshot(self.home)
+                result = self.install(check=False)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                lines = result.stdout.splitlines()
+                self.assertTrue(any(l.startswith(f"~/{RULES[name]} would be ") and l.endswith(
+                    " bytes with Mifal's block, past the 32 KiB (32768 bytes) that Codex reads. Shorten it, then "
+                    "run again.") for l in lines), result.stdout)
+                self.assertIn("Nothing was written.", lines)
+                self.assertEqual(snapshot(self.home), before)
+
+    def test_a_rules_file_at_nine_tenths_of_32_kib_installs_and_prints_the_near_limit_warning(self):
+        for name, mine in (("codex", 22000), ("claude", 30000)):
+            with self.subTest(harness=name):
+                self.setUp()
+                self.harness_fakes(name)
+                rules = self.home / RULES[name]
+                rules.parent.mkdir()
+                rules.write_text("x" * mine + "\n")
+                result = self.install()
+                size = len(rules.read_bytes())
+                self.assertTrue(29492 <= size <= 32768, size)
+                self.assertEqual(len(self.blocks(RULES[name])), 1)
+                self.assertIn(f"warn {name}: ~/{RULES[name]} would be {size} bytes, near Codex's 32 KiB default cap",
+                              result.stdout.splitlines())
 
     def test_the_claude_block_is_never_inside_a_fence(self):
         self.harness_fakes("claude")

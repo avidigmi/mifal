@@ -59,9 +59,13 @@ id, owner, latitude, return path) and the required sections — is fixed by the
   in the existing state. Put the selected phase and procedures in the brief,
   point to the parent checklist rather than copying it, and request
   `validate_contracts.py brief <brief> --matt` before work and
-  `receipt <brief> --matt` on return. The lead runs the entry/review/accept
-  checks at their boundaries. Native interpreter records retain authority;
-  file checks are not universal tool interception.
+  `receipt <brief> --matt` on return. A brief that keeps its own Phase
+  checklist uses its route's step names in order from
+  [workflow-map.md](../../engineering-workflow/references/workflow-map.md)
+  Required steps; otherwise it points to the parent checklist with `State:`.
+  The lead runs the entry/review/accept checks at their boundaries. Native
+  interpreter records retain authority; file checks are not universal tool
+  interception.
 - **Least sure of:** the assumption most likely wrong, and a request for the
   one observation that would settle it. This replaces "any concerns?", which
   gets silence or invented objections. It is the lead's own premortem; the
@@ -174,8 +178,8 @@ agent or gate follows needs none; prose that agents follow as policy, and
 test oracles, are consequential ([review routing](review-routing.md)).
 The reviewer executes the expected-outcome check, or names why it cannot; a
 narrative of red and green is not the check.
-<!-- scar: 2026-10-16 — Astra R6: a worker-written test run by the lead still needs an independent expected outcome and a negative control -->
-<!-- scar: 2026-10-16 — Astra task 12 F3: two reviewers accepted a casefold fix that does not equate SPRİNG10 with SPRING10, from a narrative of red and green, without executing the comparator -->
+<!-- scar: 2026-10-16 — a worker-written test run by the lead still needs an independent expected outcome and a negative control -->
+<!-- scar: 2026-10-16 — two reviewers accepted a casefold fix that does not equate SPRİNG10 with SPRING10, from a narrative of red and green, without executing the comparator -->
 
 Check specialist use when it matters to the result. If a worker skipped a
 selected procedure, ask whether it was unavailable, inapplicable, or missed.
@@ -260,7 +264,7 @@ the reason in the task record. The table and the router are in [review
 routing](review-routing.md). **Routing is not approval:** it never approves
 or merges, and it never lowers the independent-review requirement of an
 authorized round.
-<!-- scar: 2026-10-16 — Astra item 5: calling instruction or test changes docs-only or tests-only excludes their effect on the gate -->
+<!-- scar: 2026-10-16 — calling instruction or test changes docs-only or tests-only excludes their effect on the gate -->
 
 ## Subagents and recursion
 

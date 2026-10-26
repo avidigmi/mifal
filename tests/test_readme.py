@@ -15,12 +15,22 @@ README = REPO / "README.md"
 INSTALL = REPO / "docs" / "INSTALL.md"
 TRUST = REPO / "docs" / "TRUST.md"
 HARNESSES = ("claude", "codex", "droid", "pi", "opencode")
+FAMILIES = ("Claude Code", "Codex", "Droid", "Pi", "OpenCode")
 SH = re.compile(r"(?ms)^```sh\n(.*?)^```")
 URL = re.compile(r"git clone (\S+)")
 
 
 def text(path=README):
     return path.read_text(encoding="utf-8")
+
+
+# The recorded live check behind the Support section's limits: one Mac, one date, kept by the maintainer. Pinning it makes
+# an upgrade a deliberate, reviewed change to that claim and the README together; it is not evidence anything was observed.
+RECORDED_CHECK = "one Mac on 2026-10-25"
+
+
+def support_section(readme):
+    return re.search(r"(?ms)^## Support\n(.*?)^## ", readme).group(1)
 
 
 class Readme(Sandbox):
@@ -69,12 +79,41 @@ class Readme(Sandbox):
         self.assertIn("(docs/INSTALL.md)", text())
 
     def test_the_support_section_is_agent_agnostic_and_names_every_family(self):
-        support = re.search(r"(?ms)^## Support\n(.*?)^## ", text()).group(1)
-        self.assertIn("agent-agnostic", support)
-        for family in ("Claude Code", "Codex", "Droid", "Pi", "OpenCode"):
-            self.assertIn(family, support)
-        self.assertNotIn("| macOS", support,
-                         "no per-agent results table: Mifal wires every family it detects")
+        section = support_section(text())
+        self.assertIn("agent-agnostic", section)
+        for family in FAMILIES:  # every family Mifal wires, not a per-agent results table
+            with self.subTest(family=family):
+                self.assertIn(family, section)
+        self.assertNotIn("| macOS", section)
+        self.assertIn(RECORDED_CHECK, section)
+        self.assertIn("kept by the maintainer, not in this repository", section)
+
+    def test_the_support_section_states_its_limits(self):
+        section = support_section(text())
+        for phrase in ("entry gate", "edited before asking", "not a measure of reliability",
+                       "experimental", "fake agents", "invisible to `mifal doctor`", "`disabledSkills`",
+                       "`[[skills.config]]`", "`permission.skill`", "no sandbox or isolation",
+                       "not live-checked", "never edits or runs a hook"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, section)
+
+    def test_the_support_section_keeps_the_recorded_rows_and_levels(self):
+        # The recorded check's per-version, per-model rows and levels, restored after the
+        # table-to-prose rewrite: an upgrade drops these only by editing this pin on purpose.
+        section = support_section(text())
+        for row in ("Claude Code 2.1.310 with Sonnet 5.5 and with Opus 5.5",
+                    "Codex 0.164.0 with GPT-6.1-Sol",
+                    "Droid 0.249.0 with GLM 5.3",
+                    "Pi 1.4.0 with Claude Sonnet 5 via GitHub Copilot",
+                    "OpenCode 1.19.4 with GLM-5.3-Flash Free and DeepSeek V4.1 Flash Free"):
+            with self.subTest(row=row):
+                self.assertIn(row, section)
+        for level in ("**L1**", "**L2**", "**L3**", "**L4**"):
+            with self.subTest(level=level):
+                self.assertIn(level, section)
+        self.assertIn("except the Claude Code 2.1.310, Opus 5.5 row, which was not run", section)
+        self.assertIn("L1 was partial on every row", section)
+        self.assertIn("failed on Pi and OpenCode", section)
 
     def test_the_readme_says_herdr_stays_and_how_to_remove_it(self):
         self.assertRegex(text(INSTALL), r"Herdr stays installed")

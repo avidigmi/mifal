@@ -9,7 +9,9 @@ Usage:
   validate_contracts.py doorbell [--parse] "DONE 7 .team/tasks/7.md"
   validate_contracts.py brief path/to/task.md
   validate_contracts.py receipt path/to/return.md
+  validate_contracts.py receipt path/to/task.md --matt --brief-digest sha256:DIGEST
   validate_contracts.py brief path/to/task.md --matt
+  validate_contracts.py brief-digest path/to/task.md
   validate_contracts.py workflow path/to/state.md --gate entry
   validate_contracts.py read path/to/SKILL.md
   validate_contracts.py selfcheck
@@ -374,6 +376,8 @@ def validate_workflow(text: str, path: Path, gate="entry", require_loads=True, r
         required.extend(("implement", "tdd"))
     if route == "debug" and phase in {"reproduce", "hypothesis", "diagnose", "fix"}:
         required.append("diagnosing-bugs")
+    if route == "debug" and phase == "fix" and not exemption and "implement" not in cut:
+        required.append("tdd")
     if route == "review" or (route in {"build", "debug"} and (phase == "review" or gate in {"review", "accept"})
                              and "review" not in cut):
         required.append("code-review")
@@ -442,7 +446,8 @@ def validate_workflow(text: str, path: Path, gate="entry", require_loads=True, r
         for procedure in procedures:
             if procedure not in loads:
                 errors.append(f"missing Loaded read record for {procedure}")
-        errors.extend(late_read_errors(load_values, checks, phase, map_phases, valid_start_steps(map_steps), record=path, pool=pool))
+        errors.extend(late_read_errors(load_values, checks, phase, map_phases, valid_start_steps(map_steps), record=path, pool=pool,
+                                     route=route))
     if fields.get("ux", "").lower().startswith("applies:") and (
             pool / "team-lead" / "references" / "ux-acceptance.md").resolve() not in procedures:
         errors.append("UX applies: include the planning/acceptance reference in Procedure/Loaded")
@@ -997,8 +1002,8 @@ def workflow_map_phases(map_text):
     return found
 
 # The step a body's map row governs when the row's own phase word is not it (correction 28.2): the grilling bodies
-# govern grilling, the producers their own step, tdd implement, code-review review, writing-for-agents (loaded with
-# retro) retro; ddd-scope and ddd-ground serve the research and plan phases, which have no start step and precede implement.
+# govern grilling, the producers their own step, tdd implement (fix on the debug route, see late_read_errors),
+# code-review review, writing-for-agents (loaded with retro) retro; ddd-scope and ddd-ground serve the research and plan phases, which have no start step and precede implement.
 GOVERNED_STEP = {
     **dict.fromkeys(("grilling", "grill-with-docs", "domain-modeling"), {"grilling"}),
     "to-spec": {"to-spec"}, "to-tickets": {"to-tickets"}, "implement": {"implement"}, "tdd": {"implement"},
@@ -1103,7 +1108,7 @@ def read_skill_names(body, roles):
     return roles.get(body) or ([body.parent.name] if body.name == "SKILL.md" else [""])
 
 
-def late_read_errors(load_values, checks, phase, map_phases, valid=None, *, record, pool=None):
+def late_read_errors(load_values, checks, phase, map_phases, valid=None, *, record, pool=None, route=None):
     """A body is on time when at least one `Loaded:` read of it is stamped no later than the earliest passed start
     Check (`Check: start <step> | passed | ... at:<UTC time>`) of the step its map row governs: any step for the
     router and entry bodies, the row's own step otherwise, and the record's `Phase` for a body whose row names none.
@@ -1111,7 +1116,8 @@ def late_read_errors(load_values, checks, phase, map_phases, valid=None, *, reco
     the record writes about itself; an unstamped line stays unverified. The body a path resolves to (from the
     record's folder) is its identity: it groups the reads, whatever the path is called. The skill comes from the
     canonical pool entries that resolve to that body (`pool`, default ~/.agents/skills), not from its folder's
-    incidental name; pool names sharing one body hold the read to the earliest of their governed steps."""
+    incidental name; pool names sharing one body hold the read to the earliest of their governed steps. On the debug
+    route tdd governs `fix`, where the fix is made, and on every other route `implement`."""
     starts, errors = start_times(checks, valid)
     pool = pool or Path.home() / ".agents" / "skills"
     try:
@@ -1130,7 +1136,8 @@ def late_read_errors(load_values, checks, phase, map_phases, valid=None, *, reco
         if ROUTER_SKILLS.intersection(names):
             wanted = set(starts)
         else:
-            wanted = set().union(*(GOVERNED_STEP.get(n) or map_phases.get(n) or set() for n in names)) or {phase}
+            governed = lambda n: {"fix"} if n == "tdd" and route == "debug" else GOVERNED_STEP.get(n) or map_phases.get(n) or set()
+            wanted = set().union(*(governed(n) for n in names)) or {phase}
         held = {step: min(times) for step, times in starts.items() if step in wanted}
         for _, state, _ in reads:
             if state == "bad":
@@ -1486,6 +1493,39 @@ def workflow_digest(path):
             digest.update(chunk)
     return digest.hexdigest()
 
+TICK_RE = re.compile(r"^(\s*- \[)[xX](\])")
+
+
+def brief_parts(text):
+    """(digest, unclosed): the sha256 over the brief text above its first '## Return' line, which no code fence
+    hides, and whether an unclosed fence left no such line to find. Every `- [x]` or `- [X]` reads as `- [ ]`, so
+    a worker can tick its Phase checklist without changing the digest; line endings, trailing whitespace and
+    closing blank lines do not count, and every other character does."""
+    rows, unclosed, _ = scan_markdown(text)
+    lines = []
+    for row in rows:
+        if not row.fenced and RETURN_LABEL_RE.match(row.line):
+            break
+        lines.append(TICK_RE.sub(r"\1 \2", row.line.rstrip(" \t")))
+    else:
+        if unclosed == "fence":
+            return None, True
+    while lines and not lines[-1]:
+        lines.pop()
+    return hashlib.sha256("".join(line + "\n" for line in lines).encode("utf-8")).hexdigest(), False
+
+
+def brief_pin_errors(text, name, pinned):
+    digest, unclosed = brief_parts(text)
+    if unclosed:
+        return [f"{name}: " + UNCLOSED_MESSAGE.format("the brief")]
+    if digest != pinned.partition(":")[2]:
+        return [f"{name}: the brief changed since it was pinned (pinned {pinned}, now sha256:{digest}); only "
+                "checkbox ticks may differ. If the lead amended the brief, it stamps the new "
+                "'validate_contracts.py brief-digest <brief>' output; otherwise do not accept this return"]
+    return []
+
+
 def validate_brief(text: str, name: str):
     errors = []
     fields, body, fm_errors = parse_frontmatter(text)
@@ -1761,6 +1801,13 @@ def selfcheck(fixtures: Path) -> int:
 
 # ---------------------------------------------------------------- cli
 
+def pinned_digest(value):
+    if not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", value):
+        raise argparse.ArgumentTypeError(f"'{value}' is not a pin; use the sha256:<64 hex digits> "
+                                         "that brief-digest prints")
+    return value.lower()
+
+
 def main(argv) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -1783,6 +1830,8 @@ def main(argv) -> int:
     )
     p_receipt.add_argument("path", type=Path)
     p_receipt.add_argument("--matt", action="store_true", help="also check Matt preparation and the executor's current return reads")
+    p_receipt.add_argument("--brief-digest", type=pinned_digest, metavar="sha256:DIGEST",
+                           help="refuse the file when its brief no longer hashes to this digest (see brief-digest)")
 
     p_work = sub.add_parser("workflow", help="check recorded Matt gate evidence in existing state")
     p_work.add_argument("path", type=Path)
@@ -1793,6 +1842,10 @@ def main(argv) -> int:
 
     p_digest = sub.add_parser("design-digest", help="print the digest of a plan's design decisions, minus its Griller: lines")
     p_digest.add_argument("path", type=Path)
+
+    p_pin = sub.add_parser("brief-digest", help="print the digest of a brief: the text above its first '## Return' "
+                                                "line, checkbox ticks ignored")
+    p_pin.add_argument("path", type=Path)
 
     sub.add_parser("selfcheck", help="run the validator against its fixtures")
 
@@ -1809,6 +1862,18 @@ def main(argv) -> int:
             return 1
         if digest is None:
             print(f"error: {args.path}: no '## Design decisions' section", file=sys.stderr)
+            return 1
+        print(f"sha256:{digest}")
+        return 0
+
+    if args.cmd == "brief-digest":
+        try:
+            digest, unclosed = brief_parts(regular_text(args.path.expanduser()))
+        except (OSError, UnicodeError) as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
+        if unclosed:
+            print("error: " + UNCLOSED_MESSAGE.format(args.path), file=sys.stderr)
             return 1
         print(f"sha256:{digest}")
         return 0
@@ -1856,6 +1921,8 @@ def main(argv) -> int:
             errors = validate_receipt(text, str(path))
             if args.matt:
                 errors += validate_brief(text, str(path))
+            if args.brief_digest:
+                errors += brief_pin_errors(text, str(path), args.brief_digest)
         else:
             errors = []
         READ_NOTES.clear()
