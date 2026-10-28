@@ -2,7 +2,9 @@
 
 This checkout contains an experimental, local **single-agent** path for Windows
 and GitHub Copilot CLI. It is not upstream Windows support or a port of Herdr.
-The macOS installer and the 39 bundled skills are unchanged.
+The macOS installer and upstream skill procedures are unchanged. This fork
+adapts Mifal's own validator, inventory and snapshot tools for native Windows;
+the deltas are recorded in `third_party/provenance.json`.
 
 ## Requirements and preview
 
@@ -23,9 +25,9 @@ Review the preview before applying it. Installation writes:
 
 | Location under your home | Contents |
 |---|---|
-| `.agents\skills\<name>` | All 39 bundled skill directories, unchanged |
+| `.agents\skills\<name>` | All 39 bundled skill directories, including native-compatible solo tools |
 | `.agents\mifal\guide` | Original Mifal Guide |
-| `.agents\mifal\tools\review-snapshot.py` | Original review identity tool |
+| `.agents\mifal\tools\review-snapshot.py` | Native-compatible review identity tool |
 | `.agents\mifal\third_party` | Provenance, dependency sources and licenses |
 | `.agents\mifal` | VERSION, LICENSE, NOTICE, standalone lifecycle script and its manifest |
 | `.copilot\instructions\mifal.instructions.md` | Guide text plus explicit Windows/solo limitations |
@@ -63,7 +65,25 @@ the applicable phase skills (for example `tdd`, `implement`, `code-review` and
 `retro`). Follow the selected route rather than running all skills in a fixed
 order. Use native skill loading when available; otherwise read the full skill
 file. Expand the home path explicitly and use `python`, not a missing `python3`
-alias. The unchanged validator remains at its original canonical pool path.
+alias. The validator remains at its original canonical pool path.
+
+The validator's `read`, `brief`, `receipt`, `workflow`, `brief-digest` and
+`design-digest` commands use checked regular-file reads. On Windows, evidence
+must use local disk paths: device/UNC/alternate-stream paths and reparse points
+are refused. The opened leaf handle is checked before reading; POSIX keeps its
+nonblocking FIFO guard. This is not a filesystem sandbox or an atomic snapshot
+of multiple files. Hashes and byte counts always describe exact evidence bytes.
+
+The snapshot tool batches arguments below Windows' command-line limit and
+prints review commands for PowerShell. It takes executable mode from Git on
+Windows, where the POSIX executable permission bits are not available.
+
+Repository text uses LF via `.gitattributes`. For existing CRLF checkouts, the
+installer canonicalizes UTF-8 text payloads to LF in memory, leaving source
+files and opaque invalid-encoding fixtures untouched. It does not edit pinned
+hashes to fit changed content. `doctor` still compares installed bytes exactly,
+including line endings; changing an installed LF file to CRLF is an edit.
+The workflow map's original Ask Matt pin must match after installation.
 
 All 39 skills are copied for their references and cross-links. This does **not**
 install 39 agents or make every procedure runnable on Windows. Herdr, socket
@@ -96,17 +116,31 @@ There is no automatic updater or `mifal` command on PATH. Re-running the same
 source is a read-only no-op when every installed file matches. For a different
 revision, preview removal, remove unchanged files, review the new source, then
 preview and install it. Do not use the macOS `mifal update` for this adaptation.
+Before removal, retain a recovery copy of managed files and their manifest.
+An older CRLF installation is a different payload and needs this same guarded
+upgrade. Do not normalize its manifest or installed files in place to bypass
+edited-file detection.
 
 ## Checks and sources
 
-The cross-platform lifecycle regression suite uses disposable homes:
+The lifecycle and native solo-tool regressions use disposable installed homes:
 
 ```powershell
-python -B -m unittest discover -s tests -p test_windows_copilot.py -v
+python -X utf8 -B -m unittest discover -s tests -p "test_windows_*.py" -v
 ```
 
 The upstream `/bin/bash tests/run.sh -q` still targets macOS and two macOS Python
 installations; the focused Windows suite is not a substitute for that baseline.
+The tests execute real installed entry/review/accept gates, briefs, receipts,
+digests and snapshots with valid and deliberately invalid synthetic records.
+Fixture actors and their read/approval/review claims are test data, never proof
+that a human or agent performed those actions. Windows device/reparse checks
+and POSIX FIFO checks are platform-specific; CI runs both platforms.
+
+The original migration checked file health and discovery, not execution of
+these gates. Regression tests now cover the actual regular-reader path and
+unchanged workflow-map pin, preventing a healthy file inventory from being
+mistaken for functional validator evidence.
 
 Integration locations and discovery commands are documented by GitHub:
 

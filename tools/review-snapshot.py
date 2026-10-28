@@ -15,7 +15,8 @@ import sys
 # filters, and repository config can name an fsmonitor hook, a promisor remote or (on a terminal) a pager.
 SAFE = ["--no-pager", "-c", "core.fsmonitor=false", "--no-optional-locks", "--no-lazy-fetch",
         "--no-replace-objects"]
-ARGV_BUDGET = 128 * 1024
+ARGV_BUDGET = 24 * 1024 if os.name == "nt" else 128 * 1024
+POWERSHELL_QUOTES = str.maketrans({quote: quote * 2 for quote in "'\u2018\u2019\u201a\u201b"})
 
 
 def git(repo, *args, data=None):
@@ -56,14 +57,16 @@ def worktree_entries(repo, tracked):
                                          data=os.fsencode(os.readlink(path))).decode().strip())
         elif path.is_file():
             regular.append(name)
-            found[name] = ("100755" if path.stat().st_mode & 0o111 else "100644", None)
+            live_mode = mode if os.name == "nt" else ("100755" if path.stat().st_mode & 0o111 else "100644")
+            found[name] = (live_mode, None)
         elif path.exists():
             found[name] = ("040000", None)
     # Names go in argv after "--": --stdin-paths C-unquotes a line starting with a double quote, so a file
     # named "a" would be hashed as a. Batch by bytes to stay under the OS argument limit.
     batches, size = [[]], 0
     for name in regular:
-        cost = len(os.fsencode(name)) + 1
+        cost = (len(subprocess.list2cmdline([name]).encode("utf-16-le")) // 2 + 1
+                if os.name == "nt" else len(os.fsencode(name)) + 1)
         if batches[-1] and size + cost > ARGV_BUDGET:
             batches.append([])
             size = 0
@@ -132,9 +135,10 @@ def snapshot(repo, base, paths=()):
     canonical = json.dumps(state, sort_keys=True, ensure_ascii=True).encode()
     state["snapshotSha256"] = hashlib.sha256(canonical).hexdigest()
     prefix = ["git", "-C", str(repo), *SAFE]
+    command = [*prefix, "diff", "--cached", "--binary", "--no-ext-diff", "--no-textconv", merge_base, *scope]
     state["reviewCommands"] = {
-        "index": shlex.join([*prefix, "diff", "--cached", "--binary", "--no-ext-diff", "--no-textconv",
-                             merge_base, *scope]),
+        "index": ("& " + " ".join("'" + part.translate(POWERSHELL_QUOTES) + "'" for part in command)
+                  if os.name == "nt" else shlex.join(command)),
     }
     state["limits"] = [
         "Hashes identify bytes, not behavioral correctness or reviewer execution.",
@@ -147,6 +151,7 @@ def snapshot(repo, base, paths=()):
         "pre-edit baseline.",
         "Working-tree identities hash raw bytes, so a path whose filter normalizes content (line endings, "
         "LFS) can be listed as changed; submodule worktrees are not inspected.",
+        "On Windows, reviewCommands use PowerShell quoting; executable mode comes from Git, not NTFS.",
     ]
     return state
 

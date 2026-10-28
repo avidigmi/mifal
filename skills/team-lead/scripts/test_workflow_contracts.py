@@ -1,4 +1,4 @@
-"""Exercise opt-in Matt checks through the public validator CLI."""
+"""Synthetic tool tests, not evidence that any human, griller or reviewer performed work."""
 import hashlib
 import importlib.util
 import json
@@ -1635,7 +1635,12 @@ class WorkflowTests(unittest.TestCase):
 
     def test_canonical_symlink_aliases_are_accepted(self):
         alias = self.root / "router-alias.md"
-        alias.symlink_to(self.router)
+        try:
+            alias.symlink_to(self.router)
+        except OSError as error:
+            if getattr(error, "winerror", None) == 1314:
+                self.skipTest("Windows symlink creation privilege unavailable")
+            raise
         result = self.run_check("workflow", self.workflow().replace(str(self.router), str(alias)),
                                 "--gate", "entry")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -1727,7 +1732,7 @@ class WorkflowTests(unittest.TestCase):
         artifact = self.root / name
         body = "diff --git a/app.txt b/app.txt\n--- a/app.txt\n+++ b/app.txt\n@@ -1 +1 @@\n-before\n+after\n"
         if create:
-            artifact.write_text(body)
+            artifact.write_bytes(body.encode("utf-8"))
         digest = hashlib.sha256(body.encode()).hexdigest()
         return artifact, f"Snapshot: sha256:{digest} | {artifact}\n"
 
@@ -1779,7 +1784,8 @@ class WorkflowTests(unittest.TestCase):
         git("init", "-b", "main")
         git("config", "user.name", "Fixture")
         git("config", "user.email", "fixture@example.invalid")
-        (repo / "app.txt").write_text("before\n")
+        git("config", "core.autocrlf", "false")
+        (repo / "app.txt").write_bytes(b"before\n")
         git("add", "app.txt")
         git("commit", "-m", "fixture")
         tool = Path.home() / ".agents" / "mifal" / "tools" / "review-snapshot.py"
@@ -1846,6 +1852,8 @@ class WorkflowTests(unittest.TestCase):
             self.fail(f"blocked past {seconds}s on a special file instead of refusing it")
 
     def special_files(self):
+        if os.name == "nt":
+            return {"directory": self.procedure.parent, "device": self.root / "NUL"}
         fifo = self.root / "snapshot.fifo"
         os.mkfifo(fifo)
         link = self.root / "snapshot-link.json"
@@ -1864,6 +1872,7 @@ class WorkflowTests(unittest.TestCase):
                 if name != "directory":
                     self.assertIn("not a regular file", result.stderr)
 
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX FIFO; Windows device refusal is tested separately")
     def test_special_file_state_record_is_refused_without_blocking(self):
         fifo = self.special_files()["fifo"]
         self.record.write_text(self.with_snapshot(self.workflow(), f"State: {fifo}\n"))
@@ -1878,7 +1887,17 @@ class WorkflowTests(unittest.TestCase):
         "spec = importlib.util.spec_from_file_location('contracts_probe', sys.argv[1])\n"
         "module = importlib.util.module_from_spec(spec)\n"
         "spec.loader.exec_module(module)\n"
-        "fds = lambda: sorted(int(name) for name in os.listdir('/dev/fd'))\n"
+        "if os.name == 'nt':\n"
+        "    import ctypes, ctypes.wintypes, msvcrt\n"
+        "def fds():\n"
+        "    if os.name != 'nt':\n"
+        "        return sorted(int(name) for name in os.listdir('/dev/fd'))\n"
+        "    found = []\n"
+        "    for fd in range(256):\n"
+        "        try: os.fstat(fd)\n"
+        "        except OSError: continue\n"
+        "        found.append(fd)\n"
+        "    return found\n"
         "before = fds()\n"
         "tracemalloc.start()\n"
         "try:\n"
