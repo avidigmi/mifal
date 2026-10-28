@@ -72,7 +72,7 @@ _policy_spec.loader.exec_module(invocation)
 def shown(path):
     """A path as the inventory records it: under HOME as ~/..., so the inventory is the same on every machine."""
     try:
-        return "~/" + str(Path(path).relative_to(Path.home()))
+        return "~/" + Path(path).relative_to(Path.home()).as_posix()
     except ValueError:
         return str(path)
 

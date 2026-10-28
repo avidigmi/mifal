@@ -15,6 +15,12 @@
         "skills/frontend-design/references/interface/SOURCES.md"
       ],
       "notes": "Mifal's own: the workflow, the team lead, the Herdr adapter, the review snapshot tool and the local interface branch of frontend-design.",
+      "fork_changes": {
+        "skills/team-lead/scripts/validate_contracts.py": "Native Windows checked disk-file reads, shared by CLI entry points; POSIX nonblocking guard and exact evidence hashes retained.",
+        "skills/team-lead/scripts/test_workflow_contracts.py": "Portable synthetic contract fixtures and descriptor probes; no claim that fixture actors performed real work.",
+        "skills/team-lead/stewardship/steward.py": "Platform-independent inventory path spelling.",
+        "tools/review-snapshot.py": "Windows argument batching, Git executable modes and PowerShell review-command quoting."
+      },
       "licence_file": "LICENSE",
       "copyright": "Copyright (c) 2026 Rom Iluz and the Mifal contributors"
     },

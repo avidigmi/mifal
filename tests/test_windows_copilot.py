@@ -126,6 +126,37 @@ class WindowsCopilot(unittest.TestCase):
             self.install()
         self.assertEqual(self.snapshot(), before)
 
+    def test_text_payload_is_lf_canonical_and_binary_fixtures_are_unchanged(self):
+        skill = self.source / "skills/engineering-workflow/SKILL.md"
+        lf = skill.read_bytes().replace(b"\r\n", b"\n")
+        skill.write_bytes(lf.replace(b"\n", b"\r\n"))
+        binary = self.source / "skills/engineering-workflow/binary.md"
+        binary.write_bytes(b"\xff\r\n\x00")
+        files = windows.payload(self.source)
+        self.assertEqual(files[windows.POOL / "engineering-workflow/SKILL.md"], lf)
+        self.assertEqual(files[windows.POOL / "engineering-workflow/binary.md"], binary.read_bytes())
+        self.install()
+        skill.write_bytes(lf)
+        before = self.snapshot()
+        self.install()
+        self.assertEqual(self.snapshot(), before)
+
+    def test_guarded_revision_reinstall_preserves_personal_files(self):
+        personal = self.write_user(".copilot/skills/personal/SKILL.md")
+        self.install()
+        old = self.snapshot()
+        (self.source / "VERSION").write_bytes(b"new\n")
+        with self.assertRaises(windows.Refused):
+            self.install()
+        self.assertEqual(self.snapshot(), old)
+        self.assertEqual(windows.uninstall(self.home, True, self.lines.append), 0)
+        self.assertEqual(self.snapshot(), old)
+        self.assertEqual(windows.uninstall(self.home, False, self.lines.append), 0)
+        self.assertEqual(self.install(True), 0)
+        self.assertEqual(self.install(), 0)
+        self.assertEqual(windows.doctor(self.home, self.lines.append), 0)
+        self.assertEqual(personal.read_bytes(), b"user content\r\n")
+
     def test_interrupted_install_is_diagnosed_and_removable(self):
         original = windows.write_new
 
@@ -240,9 +271,16 @@ class WindowsCopilot(unittest.TestCase):
         self.assertEqual(len(skills), 39)
         for target, body in files.items():
             if target.parts[:2] == windows.POOL.parts:
-                self.assertEqual(body, (REPO / "skills" / Path(*target.parts[2:])).read_bytes())
+                original = (REPO / "skills" / Path(*target.parts[2:])).read_bytes()
+                try:
+                    original.decode("utf-8")
+                except UnicodeDecodeError:
+                    self.assertEqual(body, original)
+                else:
+                    self.assertEqual(body, original.replace(b"\r\n", b"\n"))
         self.assertEqual(
-            files[windows.ENGINE / "guide" / "AGENTS.md"], (REPO / "guide" / "AGENTS.md").read_bytes()
+            files[windows.ENGINE / "guide" / "AGENTS.md"],
+            (REPO / "guide" / "AGENTS.md").read_bytes().replace(b"\r\n", b"\n")
         )
         self.assertIn(b"unsupported", files[windows.INSTRUCTIONS])
         self.assertIn(windows.ENGINE / "tools" / "review-snapshot.py", files)

@@ -1465,12 +1465,78 @@ def workflow_snapshot(value, record, body_digest=None, read_text=None, guard=Fal
     return [] if result.returncode == 0 else ["Snapshot not current: " + result.stderr.strip()]
 
 
+def windows_regular_stream(path):
+    """Local disk files only: reject device/UNC/stream paths before opening a handle."""
+    import ctypes
+    from ctypes import wintypes
+    import msvcrt
+
+    name = os.path.abspath(path)
+    if not re.match(r"^[A-Za-z]:\\", name) or ":" in name[2:] or any(ord(char) < 32 for char in name):
+        raise OSError(f"not a regular file path (local disk required): {path}")
+    parts = Path(name).parts[1:]
+    if any(part.endswith((" ", ".")) or
+           re.fullmatch(r"(?i)(CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³])",
+                        part.split(".", 1)[0]) for part in parts):
+        raise OSError(f"not a regular file path: {path}")
+    for parent in Path(name).parents:
+        if parent.lstat().st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+            raise OSError(f"reparse parent is not supported: {parent}")
+
+    class FileInformation(ctypes.Structure):
+        _fields_ = [
+            ("attributes", wintypes.DWORD),
+            ("created", wintypes.FILETIME), ("accessed", wintypes.FILETIME),
+            ("written", wintypes.FILETIME), ("volume", wintypes.DWORD),
+            ("size_high", wintypes.DWORD), ("size_low", wintypes.DWORD),
+            ("links", wintypes.DWORD), ("index_high", wintypes.DWORD),
+            ("index_low", wintypes.DWORD),
+        ]
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p,
+                       wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    create.restype = wintypes.HANDLE
+    kind = kernel.GetFileType
+    kind.argtypes, kind.restype = [wintypes.HANDLE], wintypes.DWORD
+    info = kernel.GetFileInformationByHandle
+    info.argtypes = [wintypes.HANDLE, ctypes.POINTER(FileInformation)]
+    info.restype = wintypes.BOOL
+    close = kernel.CloseHandle
+    close.argtypes, close.restype = [wintypes.HANDLE], wintypes.BOOL
+    # OPEN_EXISTING + OPEN_REPARSE_POINT: inspect the opened leaf, never its link target.
+    handle = create("\\\\?\\" + name, 0x80000000, 7, None, 3, 0x00200000, None)
+    if handle == wintypes.HANDLE(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        details = FileInformation()
+        if kind(handle) != 1:
+            raise OSError(f"not a regular disk file: {path}")
+        if not info(handle, ctypes.byref(details)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if details.attributes & (stat.FILE_ATTRIBUTE_DIRECTORY | stat.FILE_ATTRIBUTE_REPARSE_POINT):
+            raise OSError(f"not a regular file (directory or reparse point): {path}")
+        descriptor = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY | os.O_NOINHERIT)
+    except BaseException:
+        close(handle)
+        raise
+    try:
+        return os.fdopen(descriptor, "rb")
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
 def regular_stream(path):
     """Open `path` for binary reading, refusing anything but a regular file.
 
     O_NONBLOCK keeps open(2) from waiting for a FIFO writer; the kind is read from the opened
     descriptor, not a separate stat, so the object checked is the object read. The stream owns the
-    descriptor from the moment it exists, so a refusal closes it. No size cap and no sandbox claim."""
+    descriptor from the moment it exists, so a refusal closes it. Windows uses a checked local
+    disk handle instead. No size cap, atomic multi-file snapshot or sandbox claim."""
+    if os.name == "nt":
+        return windows_regular_stream(path)
     source = open(path, "rb", opener=lambda name, flags: os.open(name, flags | os.O_NONBLOCK))
     try:
         if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
@@ -1879,9 +1945,10 @@ def main(argv) -> int:
         return 0
 
     if args.cmd == "read":
-        target = args.path.expanduser().resolve()
         try:
-            data = target.read_bytes()
+            target = args.path.expanduser().absolute()
+            with regular_stream(target) as source:
+                data = source.read()
             data.decode("utf-8")
         except (OSError, UnicodeError) as e:
             print(f"error: {e}", file=sys.stderr)
@@ -1903,11 +1970,8 @@ def main(argv) -> int:
 
     if args.cmd in ("brief", "receipt", "workflow"):
         path: Path = args.path
-        if not path.is_file():
-            print(f"error: no such file: {path}", file=sys.stderr)
-            return 2
         try:
-            text = path.read_text(encoding="utf-8")
+            text = regular_text(path)
         except UnicodeDecodeError as e:
             print(
                 f"error: {path}: not valid UTF-8 (byte offset {e.start}); "
@@ -1915,6 +1979,9 @@ def main(argv) -> int:
                 file=sys.stderr,
             )
             return 1
+        except OSError as e:
+            print(f"error: {path}: {e}", file=sys.stderr)
+            return 2
         if args.cmd == "brief":
             errors = validate_brief(text, str(path))
         elif args.cmd == "receipt":

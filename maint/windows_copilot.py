@@ -54,6 +54,19 @@ def regular(path):
     return path.read_bytes()
 
 
+def source_bytes(path):
+    body = regular(path)
+    if b"\0" in body:
+        return body
+    if path.suffix in ("", ".md", ".py", ".json", ".yaml", ".yml", ".sh", ".txt", ".typed"):
+        try:
+            body.decode("utf-8")
+        except UnicodeDecodeError:
+            return body  # Invalid-encoding test fixtures are opaque payloads, not text to rewrite.
+        return body.replace(b"\r\n", b"\n")
+    return body
+
+
 def compatibility():
     return """
 ## Windows/Copilot compatibility (unsupported adaptation)
@@ -78,9 +91,11 @@ above; the user's request and host safety rules always take priority.
   `.agents/mifal/windows_copilot.py` with `doctor`, or `uninstall --dry-run`
   followed by `uninstall`. Updates are manual: uninstall unchanged managed
   files, review the new source, preview it, then install it.
-- The unchanged contract validator is
+- The native-compatible contract validator is
   `.agents/skills/team-lead/scripts/validate_contracts.py`; the review snapshot
   tool is `.agents/mifal/tools/review-snapshot.py`, both under the user's home.
+  Validator evidence must be on local disk, not a UNC/device/alternate-stream
+  path or reparse point. Installed text uses LF; evidence hashes remain exact.
   A validator pass checks records, not that tests or skill invocations happened.
 - Copilot CLI personal skills and modular instructions are the integration
   target. Installation and CLI discovery do not prove desktop-app discovery,
@@ -104,13 +119,13 @@ def payload(source):
                 continue
             if path.is_file():
                 target = POOL / path.relative_to(root) if folder == "skills" else ENGINE / relative
-                files[target] = regular(path)
+                files[target] = source_bytes(path)
             elif not path.is_dir():
                 raise Refused(f"Unsupported source entry: {path}")
     for name in ("VERSION", "LICENSE", "NOTICE", "tools/review-snapshot.py"):
         path = Path(name)
-        files[ENGINE / path] = regular(safe(source, path))
-    files[RUNNER] = regular(safe(source, Path("maint/windows_copilot.py")))
+        files[ENGINE / path] = source_bytes(safe(source, path))
+    files[RUNNER] = source_bytes(safe(source, Path("maint/windows_copilot.py")))
     guide = files[ENGINE / "guide" / "AGENTS.md"].decode("utf-8")
     files[INSTRUCTIONS] = ('---\napplyTo: "**"\n---\n\n' + guide + compatibility()).encode("utf-8")
     return files

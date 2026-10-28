@@ -24,8 +24,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-      - name: Unsupported Windows adaptation lifecycle in disposable homes
-        run: python -X utf8 -B -m unittest discover -s tests -p test_windows_copilot.py -v
+      - name: Native Windows lifecycle and installed synthetic workflow gates
+        run: python -X utf8 -B -m unittest discover -s tests -p "test_windows_*.py" -v
+  solo-tools-posix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: POSIX regular-file guards and installed synthetic workflow gates
+        run: python -B -m unittest discover -s tests -p "test_windows_*.py" -v
   shipped:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
